@@ -24,7 +24,7 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    if r.Method == 'POST' {
+    if r.Method == "POST" {
         handlePost(w,r)
         //return
     }
