@@ -547,6 +547,7 @@ function handleSaveRequest()
         if (saveRequest.status == 200) // OK
         {
             // Success!
+            window.location.reload(true);
         }
     }
 }
@@ -555,18 +556,18 @@ var newPortals = [];
 function save() {   
     if (!newPortals.length) {
         document.getElementById('status').innerHTML = 'Nothing to save.  Add some portals.'; 
+        return;
     }
-    var data = JSON.stringify(portal);
+    var data = '';
+    for (var p=0; p < newPortals.length; p++) {
+        data += ',\n[' + String(newPortals[p][0]) + ',' + String(newPortals[p][1]) + ']';
+    }
 
-    //var accessToken = gapi.auth.getToken().access_token;
     saveRequest=new XMLHttpRequest();
-    saveRequest.open('POST','https://www.googleapis.com/upload/storage/v1/b/runmap-140616.appspot.com/o?key=AIzaSyDKMW3mE6UAGGTHTiah3Z6G6G5MgNIURFo&uploadType=media&name=bellevue.json');
-    //saveRequest.open('POST','https://storage.googleapis.com/runmap-140616.appspot.com?key=AIzaSyDKMW3mE6UAGGTHTiah3Z6G6G5MgNIURFo&uploadType=media&name=bellevue.json');
+    saveRequest.open('POST', window.location.href);
     saveRequest.setRequestHeader('Content-Type', 'application/json');
     saveRequest.setRequestHeader('Content-Length', data.length);
-    saveRequest.setRequestHeader('x-goog-project-id', '465576092323');
     saveRequest.onreadystatechange = handleSaveRequest;
-    //saveRequest.setRequestHeader('Authorization', 'Bearer ' + accessToken);
     saveRequest.send(data);
 }
 //,
