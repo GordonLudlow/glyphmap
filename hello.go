@@ -1,19 +1,19 @@
 package hello
 
 import (
-    "fmt"
+    //"fmt"
     "io"
-    "io/ioutil"    
+    //"io/ioutil"    
     "net/http"
     "os"
     
-    "golang.org/x/net/context"
+    //"golang.org/x/net/context"
     "google.golang.org/appengine"
-    "google.golang.org/appengine/file"
+    //"google.golang.org/appengine/file"
     "google.golang.org/appengine/log"
-    "google.golang.org/cloud/storage"  
+    //"google.golang.org/cloud/storage"  
     
-    "google.golang.org/appengine/cloudsql"    
+    //"google.golang.org/appengine/cloudsql"    
     "database/sql"
     _ "github.com/ziutek/mymysql/godrv"
 )
