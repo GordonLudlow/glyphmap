@@ -1,7 +1,7 @@
 package hello
 
 import (
-    //"fmt"
+    "fmt"
     "io"
     //"io/ioutil"    
     "net/http"
