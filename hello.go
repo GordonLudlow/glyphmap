@@ -71,7 +71,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
             log.Errorf(ctx, "rows.Scan: %v", err)
             continue
         }
-        log.Infof(ctx, leadingComma,'[',lat,',',lng,']')
+        fmt.Fprint(w, "%s[%f,%f]", leadingComma, lat, lng)
+        log.Infof(ctx, "%s[%f,%f]", leadingComma, lat, lng)
         leadingComma = ","
     }
     if err := rows.Err(); err != nil {
