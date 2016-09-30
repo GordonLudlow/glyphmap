@@ -16,8 +16,6 @@ import (
 )
 
 var bucket = "runmap-140616.appspot.com"
-var ctx appengine.Context
-var db *sql.DB
 
 func init() {
     http.HandleFunc("/", handler)
@@ -25,7 +23,7 @@ func init() {
 
 type coordinateList [][]float64
 
-func handlePost(w http.ResponseWriter, r *http.Request) {
+func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
     decoder := json.NewDecoder(r.Body)
     var coords coordinateList   
     err := decoder.Decode(&coords)
@@ -37,8 +35,7 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
         panic(err)
     }    
     for i := range coords {
-        _, err = insert.Run(coords[i][0], coords[i][1])
-        log.Infof(ctx, "Added [%f,%f]", coords[i][0], coords[i][1])
+        _, err = insert.Exec(coords[i][0], coords[i][1])
     }   
 }
 
@@ -49,7 +46,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
         panic(err)
     }   
     if r.Method == "POST" {
-        handlePost(w,r)
+        handlePost(w,r,db)
         //return
     }
     
