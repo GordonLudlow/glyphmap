@@ -16,7 +16,7 @@ import (
 )
 
 var bucket = "runmap-140616.appspot.com"
-var ctx appengine.context.Context
+var ctx appengine.Context
 var db *sql.DB
 
 func init() {
