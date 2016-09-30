@@ -2,9 +2,9 @@ package hello
 
 import (
     "fmt"
-    "io"   
+    //"io"   
     "net/http"
-    "os"
+    //"os"
     "encoding/json"
     
     "google.golang.org/appengine"
@@ -16,8 +16,8 @@ import (
 )
 
 var bucket = "runmap-140616.appspot.com"
-var ctx context.Context
-var db *DB
+var ctx appengine.context.Context
+var db *sql.DB
 
 func init() {
     http.HandleFunc("/", handler)
