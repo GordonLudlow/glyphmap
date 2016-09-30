@@ -1,8 +1,11 @@
-application: helloworld
-version: 1
+application: runmap-140616
+version: v201609300850
 runtime: go
 api_version: go1
 
 handlers:
+- url: /(.*\.(ico|html))$
+  static_files: \1
+  upload: .*\.(ico|html)$
 - url: /.*
   script: _go_app
