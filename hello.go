@@ -30,7 +30,7 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
     if err != nil {
         panic(err)
     }
-    insert, err := db.Prepare("INSERT INTO portals VALUES (?, ?)") 
+    insert, err := db.Prepare("INSERT INTO portals (lat,lng) VALUES (?, ?)") 
     if err != nil {
         panic(err)
     }    
