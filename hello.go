@@ -16,8 +16,8 @@ import (
 )
 
 var bucket = "runmap-140616.appspot.com"
-var ctx
-var db
+var ctx context.Context
+var db *DB
 
 func init() {
     http.HandleFunc("/", handler)
