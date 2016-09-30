@@ -383,6 +383,7 @@ function handleSaveRequest()
         if (saveRequest.status == 200) // OK
         {
             // Success!
+            //window.location.href += "?foo=bar"; //to pass in parameter(s) of the current viewport
             window.location.reload(true);
         }
     }
@@ -420,6 +421,12 @@ function add() {
         document.getElementById('status').innerHTML = 'Enter portal lat,lng to add'; 
         return;
     }
+    // Allow entire intel map link to be pasted in
+    //https://www.ingress.com/intel?ll=47.570585,-122.149027&z=17&pll=47.570508,-122.150159
+    var pllIndex = enteredPortal.indexOf('pll=');
+    if (pllIndex >= 0) {
+        enteredPortal = enteredPortal.substring(pllIndex+4)
+    }
     var latLng = enteredPortal.split(',');
     if (latLng.length != 2) {
         document.getElementById('status').innerHTML = 'Invalid portal lat,lng'; 
@@ -452,6 +459,7 @@ function add() {
         icon: pinImage
     });
     document.getElementById('status').innerHTML = 'Portal added'; 
+    document.getElementById('portalEntry').value = '';
 }
 </script>
 </head>
