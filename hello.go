@@ -2,16 +2,13 @@ package hello
 
 import (
     "fmt"
-    "io"
-    //"io/ioutil"    
+    "io"   
     "net/http"
     "os"
+    "json"
     
-    //"golang.org/x/net/context"
     "google.golang.org/appengine"
-    //"google.golang.org/appengine/file"
     "google.golang.org/appengine/log"
-    //"google.golang.org/cloud/storage"  
     
     //"google.golang.org/appengine/cloudsql"    
     "database/sql"
@@ -19,44 +16,43 @@ import (
 )
 
 var bucket = "runmap-140616.appspot.com"
+var ctx
+var db
 
 func init() {
     http.HandleFunc("/", handler)
 }
 
+type coordinateList [][]float64
+
 func handlePost(w http.ResponseWriter, r *http.Request) {
-    /*
-    ctx := appengine.NewContext(r)
-    if bucket == "" {
-        var err error
-        if bucket, err = file.DefaultBucketName(ctx); err != nil {
-            log.Errorf(ctx, "failed to get default GCS bucket name: %v", err)
-            return
-        }
-    }
-    */
-
-    f, err := os.OpenFile("portals.json", os.O_APPEND|os.O_WRONLY, 0600)
+    decoder := json.NewDecoder(r.Body)
+    var coords coordinateList   
+    err := decoder.Decode(&coords)
     if err != nil {
         panic(err)
     }
-    defer f.Close()
-
-    _, err = io.Copy(f, r.Body)
+    insert, err := db.Prepare("INSERT INTO portals VALUES (?, ?)") 
     if err != nil {
         panic(err)
-    }      
+    }    
+    for i := range coords {
+        _, err = insert.Run(coords[i][0], coords[i][1])
+        log.Infof(ctx, "Added [%f,%f]", coords[i][0], coords[i][1])
+    }   
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
     ctx := appengine.NewContext(r)
     db, err := sql.Open("mymysql", "cloudsql:runmap-140616:us-central1:portals*portals/web/ALL_LOWER_CASE_NO_UNDERSCORES")
-
+    if err != nil {
+        panic(err)
+    }   
     if r.Method == "POST" {
         handlePost(w,r)
         //return
     }
-
+    
     rows, err := db.Query("SELECT lat, lng FROM portals")
     if err != nil {
         log.Errorf(ctx, "db.Query: %v", err)
