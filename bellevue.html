@@ -288,10 +288,22 @@ function initializeMap()
 {
     if (!mapInitialized)
     {
-        
+        // Default map options
         var mapOptions = { center: new google.maps.LatLng(47.65, -122.10),
                             zoom: 10,
                             mapTypeId: google.maps.MapTypeId.ROADMAP };
+        
+        // Load the map options cookie if there is one
+        var name = "mapOptions=";
+        var ca = document.cookie.split(';');
+        for(var i = 0; i <ca.length; i++) {
+            var c = ca[i].trim();
+            if (c.indexOf(name) == 0) {
+                mapOptions = JSON.parse(c.substring(name.length));
+                break;
+            }
+        }        
+        
         map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
         mapInitialized=true;
 
@@ -384,6 +396,18 @@ function handleSaveRequest()
         {
             // Success!
             //window.location.href += "?foo=bar"; //to pass in parameter(s) of the current viewport
+        
+            // Save current map options so that they'll be retained
+            var d = new Date();
+            d.setTime(d.getTime() + (7*24*60*60*1000)); // keep it for a week
+            var expires = "expires="+d.toUTCString();
+            
+            var mapOptions = {  center: map.getCenter(),
+                                zoom: map.getZoom(),
+                                mapTypeId: map.getMapTypeId() };
+
+            document.cookie = "mapOptions=" + JSON.stringify(mapOptions) + "; " + expires;            
+
             window.location.reload(true);
         }
     }
