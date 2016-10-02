@@ -24,6 +24,7 @@ func init() {
 type coordinateList [][]float64
 
 func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+    ctx := appengine.NewContext(r)
     decoder := json.NewDecoder(r.Body)
     var coords coordinateList   
     err := decoder.Decode(&coords)
@@ -34,7 +35,7 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
     if err != nil {
         panic(err)
     }
-    insertCount = 0
+    var insertCount = 0
     for i := range coords {
         _, err = insert.Exec(coords[i][0], coords[i][1])
         if err == nil {
@@ -48,7 +49,6 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    ctx := appengine.NewContext(r)
     db, err := sql.Open("mymysql", "cloudsql:runmap-140616:us-central1:portals*portals/web/ALL_LOWER_CASE_NO_UNDERSCORES")
     if err != nil {
         panic(err)
@@ -58,6 +58,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
         return
     }
     
+    ctx := appengine.NewContext(r)
     rows, err := db.Query("SELECT lat, lng FROM portals")
     if err != nil {
         log.Errorf(ctx, "db.Query: %v", err)
