@@ -33,10 +33,18 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
     insert, err := db.Prepare("INSERT INTO portals (lat,lng) VALUES (?, ?)") 
     if err != nil {
         panic(err)
-    }    
+    }
+    insertCount = 0
     for i := range coords {
         _, err = insert.Exec(coords[i][0], coords[i][1])
+        if err == nil {
+            insertCount++
+        } else {
+            log.Errorf(ctx, "error adding %f,%f: %v", coords[i][0], coords[i][1], err)
+            fmt.Fprintf(w, "error adding %f,%f: %v", coords[i][0], coords[i][1], err)
+        }
     }   
+    fmt.Fprintf(w, "%i portals added", insertCount)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +55,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     }   
     if r.Method == "POST" {
         handlePost(w,r,db)
-        //return
+        return
     }
     
     rows, err := db.Query("SELECT lat, lng FROM portals")

@@ -125,9 +125,17 @@ function renderPortals() {
             });    
         }                
         for (point in BDFHJ[list]) {
+            var lat = BDFHJ[list][point][0];
+            var lng = BDFHJ[list][point][1];
+            var mapLat = (lat + .001).toString();
+            var mapLng = (lng - .001).toString();
+            var url = 'https://www.ingress.com/intel?ll=' + mapLat + ',' + mapLng + '&z=17&pll=' + lat + ',' + lng;
+
             marker = new google.maps.Marker({
                 map: map,
-                position: new google.maps.LatLng(BDFHJ[list][point][0], BDFHJ[list][point][1])
+                title: url,
+                url: url,                
+                position: new google.maps.LatLng(mapLat, mapLng)
             });
         }
     }
