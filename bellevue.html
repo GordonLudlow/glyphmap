@@ -49,6 +49,19 @@ var mapInitialized=false;
     else window.convexHull = convexHull;
 })();
 
+function saveMapOptions() {
+    // Save current map options so that they'll be retained
+    var d = new Date();
+    d.setTime(d.getTime() + (7*24*60*60*1000)); // keep it for a week
+    var expires = "expires="+d.toUTCString();
+
+    var mapOptions = {  center: map.getCenter(),
+                        zoom: map.getZoom(),
+                        mapTypeId: map.getMapTypeId() };
+
+    document.cookie = "mapOptions=" + JSON.stringify(mapOptions) + "; " + expires;   
+}
+            
 function renderPortals() {
     //                     A
     // B                                       C
@@ -135,8 +148,12 @@ function renderPortals() {
                 map: map,
                 title: url,
                 url: url,                
-                position: new google.maps.LatLng(mapLat, mapLng)
+                position: new google.maps.LatLng(lat, lng)
             });
+            google.maps.event.addListener(marker, 'click', function() {
+                saveMapOptions();
+                window.location.href = this.url;
+            });              
         }
     }
     
@@ -406,16 +423,8 @@ function handleSaveRequest()
             //window.location.href += "?foo=bar"; //to pass in parameter(s) of the current viewport
         
             // Save current map options so that they'll be retained
-            var d = new Date();
-            d.setTime(d.getTime() + (7*24*60*60*1000)); // keep it for a week
-            var expires = "expires="+d.toUTCString();
-            
-            var mapOptions = {  center: map.getCenter(),
-                                zoom: map.getZoom(),
-                                mapTypeId: map.getMapTypeId() };
-
-            document.cookie = "mapOptions=" + JSON.stringify(mapOptions) + "; " + expires;            
-
+            saveMapOptions();
+         
             window.location.reload(true);
         }
     }
