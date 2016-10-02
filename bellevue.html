@@ -111,7 +111,8 @@ function renderPortals() {
     
     var BDFHJ = {};
     var CEFGI = {};
-    var AFK = {};
+    var AFK = {}; // vertical
+	var BC = {}; // horizontal
     
     for (var p=0; p < portalCount; p++) {
         var intercept = (portal[p][0] + (4.0*portal[p][1]/7.0)).toFixed(4);
@@ -208,6 +209,32 @@ function renderPortals() {
             });    
         }                
     }  
+	
+    for (var p=0; p < portalCount; p++) {
+        var intercept = portal[p][0].toFixed(4); 
+        if (intercept in BC) {
+            BC[intercept].push(portal[p]);
+        }
+        else {
+            BC[intercept] = [portal[p]];
+        }
+    }
+    for (list in BC) {
+        if (BC[list].length > 1) {
+            BC[list].sort();
+            linePoints = BC[list].map(function (item) {
+                return new google.maps.LatLng(item[0], item[1]);
+            });            
+
+            var polyLine = new google.maps.Polyline({
+                path: linePoints,
+                strokeColor: '#FF0000',
+                strokeOpacity: 1.0,
+                strokeWeight: 2,
+                map: map
+            });    
+        }                
+    }  	
     
     /* CONVEX HULLERY
     var label = 0;
