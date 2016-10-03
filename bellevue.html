@@ -502,6 +502,10 @@ function add() {
     }
     latLng[0] = parseFloat(latLng[0])
     latLng[1] = parseFloat(latLng[1])
+    if (isNan(latLng[0]) || isNan(latLng[1])) {
+        document.getElementById('status').innerHTML = 'Invalid portal lat,lng'; 
+        return;
+    }
     for (var p=0; p < portalCount; p++) {
         if ((portal[p][0] == latLng[0]) && (portal[p][1] == latLng[1])) {
             document.getElementById('status').innerHTML = 'Duplicate portal'; 
