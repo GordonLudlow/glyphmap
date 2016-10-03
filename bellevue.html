@@ -502,7 +502,7 @@ function add() {
     }
     latLng[0] = parseFloat(latLng[0])
     latLng[1] = parseFloat(latLng[1])
-    if (isNan(latLng[0]) || isNan(latLng[1])) {
+    if (isNaN(latLng[0]) || isNaN(latLng[1])) {
         document.getElementById('status').innerHTML = 'Invalid portal lat,lng'; 
         return;
     }
