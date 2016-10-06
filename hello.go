@@ -62,6 +62,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     rows, err := db.Query("SELECT lat, lng FROM portals")
     if err != nil {
         log.Errorf(ctx, "db.Query: %v", err)
+        panic(err)
     }
     defer rows.Close()
 
