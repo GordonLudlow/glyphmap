@@ -125,6 +125,7 @@ function renderPortals() {
     }
     for (list in BDFHJ) {
         if (BDFHJ[list].length > 1) {
+            console.log('BDFHJ[list].length='+BDFHJ[list].length)
             BDFHJ[list].sort();
             linePoints = BDFHJ[list].map(function (item) {
                 return new google.maps.LatLng(item[0], item[1]);
@@ -169,6 +170,7 @@ function renderPortals() {
     }
     for (list in CEFGI) {
         if (CEFGI[list].length > 1) {
+            console.log('CEFGI[list].length='+CEFGI[list].length)
             CEFGI[list].sort();
             linePoints = CEFGI[list].map(function (item) {
                 return new google.maps.LatLng(item[0], item[1]);
@@ -195,6 +197,7 @@ function renderPortals() {
     }
     for (list in AFK) {
         if (AFK[list].length > 1) {
+            console.log('AFK[list].length='+AFK[list].length)
             AFK[list].sort();
             linePoints = AFK[list].map(function (item) {
                 return new google.maps.LatLng(item[0], item[1]);
