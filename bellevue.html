@@ -236,6 +236,41 @@ function renderPortals() {
         }                
     }   
     
+    // Find F candidates
+    var candidates = 0;
+    for (b in BDFHJ) {
+        if (BDFHJ[b].length >= 5) {
+            for (c in CEFGI) {
+                if (CEFGI[c].length >= 5) {
+                    for (a in AFK) {
+                        if (AFK[a].length >= 3) {
+                            for (bi in BDFHJ[b]) {
+                                for (ci in CEFGI[c]) {
+                                    if (bi[2] == ci[2]) {
+                                        for (ai in AFK[a]) {
+                                            if (ai[2] == bi[2]) {
+                                                // Found a candidate!
+                                                var circle = new google.maps.Circle({
+                                                    strokeColor: '#00FF00',
+                                                    strokeOpacity: 0.8,
+                                                    strokeWeight: 2,
+                                                    fillColor: '#FF0000',
+                                                    fillOpacity: 0.35,
+                                                    map: map,
+                                                    center: {lat: ai[0], lng: ai[1]},
+                                                    radius: 40                                                
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     /* CONVEX HULLERY
     var label = 0;
     var labels = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -369,6 +404,9 @@ function initializeMap()
                 {
                     portal = JSON.parse('[' + this.responseText + ']');
                     portalCount = portal.length;
+                    for (var p=0; p<portalCount;p++) {
+                        portal[p].push(p); // the index will be handy for comparing elements
+                    }
                     renderPortals();
                 }
             }
