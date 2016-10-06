@@ -523,7 +523,7 @@ function add() {
     // TODO some day: If this even works, stick the city into the database and do this in other cities
     addRequest=new XMLHttpRequest();
     addRequest.open('GET', 'https://maps.googleapis.com/maps/api/geocode/json?latlng='
-        + latLng[0] + ',' + latLng[1] + '&result_type=locality&key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjVqY8VnMU');
+        + latLng[0] + ',' + latLng[1] + '&result_type=locality&key=AIzaSyASf7qjepsI9SUnp2Y5_RRlesn132jfA18');
     addRequest.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
             result = JSON.parse(this.responseText);
