@@ -112,7 +112,7 @@ function renderPortals() {
     var BDFHJ = {};
     var CEFGI = {};
     var AFK = {}; // vertical
-	var BC = {}; // horizontal
+    var BC = {}; // horizontal
     
     for (var p=0; p < portalCount; p++) {
         var intercept = (portal[p][0] + (4.0*portal[p][1]/7.0)).toFixed(4);
@@ -209,7 +209,7 @@ function renderPortals() {
             });    
         }                
     }  
-	
+    
     for (var p=0; p < portalCount; p++) {
         var intercept = portal[p][0].toFixed(4); 
         if (intercept in BC) {
@@ -234,7 +234,7 @@ function renderPortals() {
                 map: map
             });    
         }                
-    }  	
+    }   
     
     /* CONVEX HULLERY
     var label = 0;
@@ -517,21 +517,49 @@ function add() {
             document.getElementById('status').innerHTML = 'Already added'; 
             return;            
         }
-    }    
-    newPortals.push(latLng);
+    }
+    
+    // Check to make sure it's in Bellevue
+    // TODO some day: If this even works, stick the city into the database and do this in other cities
+    addRequest=new XMLHttpRequest();
+    addRequest.open('GET', 'https://maps.googleapis.com/maps/api/geocode/json?latlng='
+        + latLng[0] + ',' + latLng[1] + '&result_type=locality&key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjVqY8VnMU');
+    addRequest.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            result = JSON.parse(this.responseText);
+            if (result.status != 'OK') {
+                document.getElementById('status').innerHTML = result.status; 
+                return;
+            }
+            var resultCount = result.results.length;
+            for (var r = 0; r<resultCount; r++) {
+                var componentCount = result.results[r].address_components.length;
+                for (var c =0; c<componentCount; c++) {
+                    if (result.results[r].address_components[c].short_name == 'Bellevue') {
+                        newPortals.push(latLng);
 
-    var pinColor = "75FE69";
-    var pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=o|" + pinColor,
-        new google.maps.Size(21, 34),
-        new google.maps.Point(0,0),
-        new google.maps.Point(10, 34));
-    marker = new google.maps.Marker({
-        map: map,
-        position: new google.maps.LatLng(latLng[0], latLng[1]),
-        icon: pinImage
-    });
-    document.getElementById('status').innerHTML = 'Portal added'; 
-    document.getElementById('portalEntry').value = '';
+                        var pinColor = "75FE69";
+                        var pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=o|" + pinColor,
+                            new google.maps.Size(21, 34),
+                            new google.maps.Point(0,0),
+                            new google.maps.Point(10, 34));
+                        marker = new google.maps.Marker({
+                            map: map,
+                            position: new google.maps.LatLng(latLng[0], latLng[1]),
+                            icon: pinImage
+                        });
+                        document.getElementById('status').innerHTML = 'Portal added'; 
+                        document.getElementById('portalEntry').value = '';
+                        return;
+                    }
+                }
+                
+            }
+
+
+        }
+    };
+    addRequest.send(data);  
 }
 </script>
 </head>
