@@ -249,9 +249,9 @@ function renderPortals() {
                         if (AFK[a].length >= 3) {
                             for (bi in BDFHJ[b]) {
                                 for (ci in CEFGI[c]) {
-                                    if (bi[2] == ci[2]) {
+                                    if (BDFHJ[b][bi][2] == CEFGI[c][ci][2]) {
                                         for (ai in AFK[a]) {
-                                            if (ai[2] == bi[2]) {
+                                            if (AFK[a][ai][2] == BDFHJ[b][bi][2]) {
                                                 // Found a candidate!
                                                 var circle = new google.maps.Circle({
                                                     strokeColor: '#00FF00',
@@ -260,7 +260,7 @@ function renderPortals() {
                                                     fillColor: '#FF0000',
                                                     fillOpacity: 0.35,
                                                     map: map,
-                                                    center: {lat: ai[0], lng: ai[1]},
+                                                    center: {lat: AFK[a][ai][0], lng: AFK[a][ai][1]},
                                                     radius: 40});                                                
                                             }
                                         }
