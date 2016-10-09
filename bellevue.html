@@ -112,7 +112,7 @@ function renderPortals() {
     var BDFHJ = {};
     var CEFGI = {};
     var AFK = {}; // vertical
-    var BC = {}; // horizontal
+    var DE = {}; // horizontal
     
     for (var p=0; p < portalCount; p++) {
         var intercept = (portal[p][0] + (4.0*portal[p][1]/7.0)).toFixed(4);
@@ -215,17 +215,17 @@ function renderPortals() {
     
     for (var p=0; p < portalCount; p++) {
         var intercept = portal[p][0].toFixed(4); 
-        if (intercept in BC) {
-            BC[intercept].push(portal[p]);
+        if (intercept in DE) {
+            DE[intercept].push(portal[p]);
         }
         else {
-            BC[intercept] = [portal[p]];
+            DE[intercept] = [portal[p]];
         }
     }
-    for (list in BC) {
-        if (BC[list].length > 1) {
-            BC[list].sort();
-            linePoints = BC[list].map(function (item) {
+    for (list in DE) {
+        if (DE[list].length > 1) {
+            DE[list].sort();
+            linePoints = DE[list].map(function (item) {
                 return new google.maps.LatLng(item[0], item[1]);
             });            
 
@@ -273,6 +273,143 @@ function renderPortals() {
             }
         }
     }
+    
+    // No F candidates yet, try something simpler
+    // "Truth" is DFHEFGD 
+    //                     A
+    // B                                       C
+    //           D                   E
+    //                     F
+    //           G                   H
+    // I                                       J
+    //                     K    
+    candidates = 0;
+    for (var b in BDFHJ) {
+        if (BDFHJ[b].length >= 3) {
+            for (var c in CEFGI) {
+                if (CEFGI[c].length >= 3) {
+                    for (var bf in BDFHJ[b]) {
+                        for (var cf in CEFGI[c]) {
+                            if (BDFHJ[b][bf][2] == CEFGI[c][cf][2]) {
+                                // "F" might be BDFHJ[b][bf] and CEFGI[c][cf]
+                                // AFK and DE can be used to find DEGH on the BDFHJ/DEFGI lines
+                                for (var bd in BDFHJ[b]) {
+                                    // bd is a point on the dfh line that's a d candidate
+                                    if (bd==bf) continue;
+                                    // Find bd in AFK
+                                    var foundAD = false;
+                                    for (var a in AFK) {
+                                        if (foundAD) break;
+                                        for (var ad in AFK[a]) {
+                                            if (AFK[a][ad][2] == BDFHJ[b][bd][2]) {
+                                                if (AFK[a].length > 1) {
+                                                    for (var ag in AFK[a]) {
+                                                        if (ag==ad) continue;
+                                                        // for the other points on the afk line, is one on gfe?
+                                                        for (var cg in CEFGI[c]) {
+                                                            if (cg == cf) continue;
+                                                            if (CEFGI[c][cg][2] == AFK[a][ag][2]) {
+                                                                // We've found a vertical line between D and G
+                                                                // Now find a horizontal line between D and E
+                                                                var foundDD = false;
+                                                                for (var d in DE) {
+                                                                    if (foundDD) break;
+                                                                    for (var dd in DE[d]) {
+                                                                        if (DE[d][dd][2] == BDFHJ[b][bd][2]) {
+                                                                            if (DE[d].length > 1) {
+                                                                                for (var de in DE[d]) {
+                                                                                    if (de==dd) continue;
+                                                                                    // for the other points on the de line, is one on gfe?
+                                                                                    for (var ce in CEFGI[c]) {
+                                                                                        if (ce == cf) continue;
+                                                                                        if (ce == cg) continue;
+                                                                                        if (CEFGI[c][ce][2] == DE[d][de][2]) {
+                                                                                            // At this point, we have a D that's horizontal to an E
+                                                                                            // and vertical to a G.  If we can find an H, we've got it.
+                                                                                            for (var bh in BDFHJ[b]) {
+                                                                                                if (bh == bf) continue;
+                                                                                                if (bh == bd) continue;
+                                                                                                var foundAH = false;
+                                                                                                for (var a2 in AFK) {
+                                                                                                    if (foundAH) break;
+                                                                                                    for (var ah in AFK[a2]) {
+                                                                                                        if (AFK[a2][ah][2] == BDFHJ[b][bh][2]) {
+                                                                                                            if (AFK[a2].length > 1) {
+                                                                                                                for (var ae in AFK[a2]) {
+                                                                                                                    if (ae == ah) continue;
+                                                                                                                    if (AFK[a2][ae][2] == CEFGI[c][ce][2]) {
+                                                                                                                        // This AH lines up vertically with E
+                                                                                                                        // Check horizontally with G
+                                                                                                                        var foundDH = false;
+                                                                                                                        for (var d2 in DE) {
+                                                                                                                            if (foundDH) break;
+                                                                                                                            for (var dh in DE[d2]) {
+                                                                                                                                if (DE[d2][dh][2] == BDFHJ[b][bh][2]) {
+                                                                                                                                    if (DE[d2].length > 1) {
+                                                                                                                                        for (var dg in DE[d2]) {
+                                                                                                                                            if (dg == dh) continue;
+                                                                                                                                            if (DE[d2][dg][2] == CEFGI[c][cg][2]) {
+                                                                                                                                                // All criteria met!!!
+                                                                                                                                                // (There's got to be a better way!!!!)
+                                                                                                                                                var polyline = new google.maps.Polyline({
+                                                                                                                                                    path: [
+                                                                                                                                                    //DFHEFGD
+                                                                                                                                                    {lat: BDFHJ[b][bd][0], lng: BDFHJ[b][bd][1]},
+                                                                                                                                                    {lat: BDFHJ[b][bf][0], lng: BDFHJ[b][bf][1]},
+                                                                                                                                                    {lat: BDFHJ[b][bh][0], lng: BDFHJ[b][bh][1]},
+                                                                                                                                                    {lat: CEFGI[c][ce][0], lng: CEFGI[c][ce][1]},
+                                                                                                                                                    {lat: BDFHJ[b][bf][0], lng: BDFHJ[b][bf][1]},
+                                                                                                                                                    {lat: CEFGI[c][cg][0], lng: CEFGI[c][cg][1]},
+                                                                                                                                                    {lat: BDFHJ[b][bd][0], lng: BDFHJ[b][bd][1]}
+                                                                                                                                                    ],
+                                                                                                                                                    strokeColor: "#FF00FF",
+                                                                                                                                                    strokeOpacity: 1.0,
+                                                                                                                                                    strokeWeight: 2,
+                                                                                                                                                    map: map});
+                                                                                                                                            } 
+                                                                                                                                        }
+                                                                                                                                    }
+                                                                                                                                    foundDG = true;
+                                                                                                                                    break;
+                                                                                                                                }
+                                                                                                                            }
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }
+                                                                                                            foundAH = true;
+                                                                                                            break;
+                                                                                                        }
+                                                                                                    }
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                            foundDD = true;
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                foundAD = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+   
     
     /* CONVEX HULLERY
     var label = 0;
