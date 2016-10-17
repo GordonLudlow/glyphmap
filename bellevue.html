@@ -351,7 +351,7 @@ function renderPortals() {
     }
     var minError = Number.MAX_VALUE;
     while (stack.length) {
-        partialPath = stack.pop();
+        var partialPath = stack.pop();
         var partialPathLength = partialPath.length;
         for (var p=0; p<portalCount; p++) {
             if (!CompareArrays(adjacency[partialPath[partialPathLength-1]][p], path[partialPathLength-1])) {
@@ -365,11 +365,11 @@ function renderPortals() {
                     // Compare relative segment lengths
                     
                     // First, make sure we have all the squared distances calculated
-                    for (var ppi=0;ppi<partialPathLength;ppi++) {
+                    for (var ppi=0;ppi<partialPathLength-1;ppi++) {
                         // find the dist between points if it's not in the sqDist cache
                         if (!sqDist[partialPath[ppi]][partialPath[ppi+1]]) {
-                            dlat = portal[partialPath[ppi]][0] - portal[partialPath[ppi+1]][0];
-                            dlng = portal[partialPath[ppi]][1] - portal[partialPath[ppi+1]][1];
+                            var dlat = portal[partialPath[ppi]][0] - portal[partialPath[ppi+1]][0];
+                            var dlng = portal[partialPath[ppi]][1] - portal[partialPath[ppi+1]][1];
                             sqDist[partialPath[ppi]][partialPath[ppi+1]] = dlat*dlat + dlng*dlng;
                         }
                     }
@@ -377,7 +377,7 @@ function renderPortals() {
                     // use the first segment's length as the ratio of pixels squared distance to lat,lng squared distance
                     var ratio = sqDist[partialPath[0]][partialPath[1]] / sqDistances[0];
                     var error = 0;
-                    for (var ppi=1;ppi<partialPathLength;ppi++) {
+                    for (var ppi=1;ppi<partialPathLength-1;ppi++) {
                         var delta = (sqDistances[partialPath[ppi]][partialPath[ppi+1]] * ratio) - sqDist[partialPath[ppi]][partialPath[ppi+1]];
                         error += delta*delta;
                     }
