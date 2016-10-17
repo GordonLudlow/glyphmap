@@ -61,8 +61,97 @@ function saveMapOptions() {
 
     document.cookie = "mapOptions=" + JSON.stringify(mapOptions) + "; " + expires;   
 }
+
+function findAdjacent(adjacent, rise, run) {
+    var interceptMap = {};
+    for (var p=0; p < portalCount; p++) {
+        if (rise==0) {
+            var intercept = (portal[p][0]).toFixed(4);
+        }
+        else if (run==0) {
+            var intercept = (portal[p][1]).toFixed(4);
+        }
+        else {
+            var intercept = (portal[p][0] + (rise*portal[p][1]/run)).toFixed(4);
+        }
+        if (intercept in interceptMap) {
+            interceptMap[intercept].push(p);
+        }
+        else {
+            interceptMap[intercept] = [p];
+        }        
+    } 
+    if (rise==0) {
+        var compare = function(a, b) { return portal[a][1] - portal[b][1]; };
+    }
+    else {
+        var compare = function(a, b) { return portal[a][0] - portal[b][0]; };
+    }    
+    for (var list in interceptMap) {
+        if (interceptMap[list].length > 1) {
+            interceptMap[list].sort(compare); 
+            for (var i=0; i<interceptMap[list].length-1; i++) {
+                var p0 = interceptMap[list][i];
+                for (var j=i+1; j<interceptMap[list].length; j++) {
+                    var p1 = interceptMap[list][j];
+                    adjacent[p0][p1] = [-rise,-run];
+                    adjacent[p1][p0] = [rise,run];
+                }
+            }
+        }
+    }
+}
+
+function CompareArrays(a1, a2) {
+    if (a1 && !a2)
+        return 1;
+    if (!a1 && a2)
+        return -1;
+    if (!a1 && !a2)
+        return 0;
+        
+    // compare lengths - can save a lot of time 
+    var lengthDiff = a1.length - a2.length; 
+    if (lengthDiff)
+        return lengthDiff;
+
+    for (var i = 0, l=a1.length; i < l; i++) {
+        // Check if we have nested arrays
+        if (a1[i] instanceof Array && a2[i] instanceof Array) {
+            // recurse into the nested arrays
+            var diff = CompareArrays(a1[i], a2[i]);
+            if (diff)
+                return diff;       
+        }           
+        else {
+            var diff = a1[i] - a2[i];
+            if (diff)
+                return diff;
+        }           
+    }       
+    return 0;
+}
             
 function renderPortals() {
+    for (var point=0; point<portalCount; point++) {
+        var lat = portal[point][0];
+        var lng = portal[point][1];
+        var mapLat = (lat + .001).toString();
+        var mapLng = (lng - .001).toString();
+        var url = 'https://www.ingress.com/intel?ll=' + mapLat + ',' + mapLng + '&z=17&pll=' + lat + ',' + lng;
+
+        marker = new google.maps.Marker({
+            map: map,
+            title: url,
+            url: url,                
+            position: new google.maps.LatLng(lat, lng)
+        });
+        google.maps.event.addListener(marker, 'click', function() {
+            saveMapOptions();
+            window.location.href = this.url;
+        });              
+    }
+
     //                     A
     // B                                       C
     //           D                   E
@@ -109,137 +198,47 @@ function renderPortals() {
     // Then the whole problem can by solved by grouping the points into 3 grouping schemes.  The BDFHJ angle, the CEFGI angle and by equal longitude (AFK).
     // Then... find the best F.
     
-    var BDFHJ = {};
-    var CEFGI = {};
-    var AFK = {}; // vertical
-    var DE = {}; // horizontal
+    //var BDFHJ = {};
+    //var CEFGI = {};
+    //var AFK = {}; // vertical
+    //var DE = {}; // horizontal
     
-    for (var p=0; p < portalCount; p++) {
-        var intercept = (portal[p][0] + (4.0*portal[p][1]/7.0)).toFixed(4);
-        if (intercept in BDFHJ) {
-            BDFHJ[intercept].push(portal[p]);
-        }
-        else {
-            BDFHJ[intercept] = [portal[p]];
-        }
-    }
-    for (list in BDFHJ) {
-        if (BDFHJ[list].length > 1) {
-            console.log('BDFHJ[list].length='+BDFHJ[list].length)
-            BDFHJ[list].sort();
-            linePoints = BDFHJ[list].map(function (item) {
-                return new google.maps.LatLng(item[0], item[1]);
-            });            
-
-            var polyLine = new google.maps.Polyline({
-                path: linePoints,
-                strokeColor: '#FF0000',
-                strokeOpacity: 1.0,
-                strokeWeight: 2,
-                map: map
-            });    
-        }                
-        for (point in BDFHJ[list]) {
-            var lat = BDFHJ[list][point][0];
-            var lng = BDFHJ[list][point][1];
-            var mapLat = (lat + .001).toString();
-            var mapLng = (lng - .001).toString();
-            var url = 'https://www.ingress.com/intel?ll=' + mapLat + ',' + mapLng + '&z=17&pll=' + lat + ',' + lng;
-
-            marker = new google.maps.Marker({
-                map: map,
-                title: url,
-                url: url,                
-                position: new google.maps.LatLng(lat, lng)
-            });
-            google.maps.event.addListener(marker, 'click', function() {
-                saveMapOptions();
-                window.location.href = this.url;
-            });              
+    // Need a better data structure
+    // For each of the angles of interest, find adjacency.  Put it in an adgacency graph.
+    
+    var adjacency =[]; // for each pair of portals, the slope of the line between them
+                       // the slope is expressed as a tuple indicating direction
+                       // (up or down) one of the interesting lines
+                       // If the pair of points is along BDFHJ, B's adjacency to D is 4,7.
+                       // D's adjacency to B is -4,-7 (same slope, opposite direction)
+    while (adjacency.push([]) < portalCount);
+    for (var p0=0; p0<portalCount; p0++) {
+        for (var p1=0; p1<portalCount; p1++) {
+            adjacency[p0][p1] = [0,0];
         }
     }
     
-    for (var p=0; p < portalCount; p++) {
-        var intercept = (portal[p][0] - (4.0*portal[p][1]/7.0)).toFixed(4); 
-        if (intercept in CEFGI) {
-            CEFGI[intercept].push(portal[p]);
-        }
-        else {
-            CEFGI[intercept] = [portal[p]];
-        }
-    }
-    for (list in CEFGI) {
-        if (CEFGI[list].length > 1) {
-            console.log('CEFGI[list].length='+CEFGI[list].length)
-            CEFGI[list].sort();
-            linePoints = CEFGI[list].map(function (item) {
-                return new google.maps.LatLng(item[0], item[1]);
-            });            
+    findAdjacent(adjacency,  4, 7);
+    findAdjacent(adjacency, -4, 7);
+    findAdjacent(adjacency,  1, 0);
+    findAdjacent(adjacency,  0, 1);
 
-            var polyLine = new google.maps.Polyline({
-                path: linePoints,
-                strokeColor: '#FF0000',
-                strokeOpacity: 1.0,
-                strokeWeight: 2,
-                map: map
-            });    
-        }                
-    }        
 
-    for (var p=0; p < portalCount; p++) {
-        var intercept = portal[p][1].toFixed(4); 
-        if (intercept in AFK) {
-            AFK[intercept].push(portal[p]);
-        }
-        else {
-            AFK[intercept] = [portal[p]];
-        }
-    }
-    for (list in AFK) {
-        if (AFK[list].length > 1) {
-            console.log('AFK[list].length='+AFK[list].length)
-            AFK[list].sort();
-            linePoints = AFK[list].map(function (item) {
-                return new google.maps.LatLng(item[0], item[1]);
-            });            
 
-            var polyLine = new google.maps.Polyline({
-                path: linePoints,
-                strokeColor: '#FF0000',
-                strokeOpacity: 1.0,
-                strokeWeight: 2,
-                map: map
-            });    
-        }                
-    }  
-    
-    for (var p=0; p < portalCount; p++) {
-        var intercept = portal[p][0].toFixed(4); 
-        if (intercept in DE) {
-            DE[intercept].push(portal[p]);
-        }
-        else {
-            DE[intercept] = [portal[p]];
-        }
-    }
-    for (list in DE) {
-        if (DE[list].length > 1) {
-            DE[list].sort();
-            linePoints = DE[list].map(function (item) {
-                return new google.maps.LatLng(item[0], item[1]);
-            });            
+    //linePoints = AFK[list].map(function (item) {
+    //    return new google.maps.LatLng(item[0], item[1]);
+    //});            
 
-            var polyLine = new google.maps.Polyline({
-                path: linePoints,
-                strokeColor: '#FF0000',
-                strokeOpacity: 1.0,
-                strokeWeight: 2,
-                map: map
-            });    
-        }                
-    }   
-    
+    //var polyLine = new google.maps.Polyline({
+    //    path: linePoints,
+    //    strokeColor: '#FF0000',
+    //    strokeOpacity: 1.0,
+    //    strokeWeight: 2,
+    //    map: map
+    //});    
+ 
     // Find F candidates
+    /*
     var candidates = 0;
     for (b in BDFHJ) {
         if (BDFHJ[b].length >= 5) {
@@ -273,6 +272,7 @@ function renderPortals() {
             }
         }
     }
+    */
     
     // No F candidates yet, try something simpler
     // "Truth" is DFHEFGD 
@@ -283,6 +283,7 @@ function renderPortals() {
     //           G                   H
     // I                                       J
     //                     K    
+    /*
     candidates = 0;
     for (var b in BDFHJ) {
         if (BDFHJ[b].length >= 3) {
@@ -409,7 +410,85 @@ function renderPortals() {
             }
         }
     }
+    */
    
+    // "Truth" is DFHEFGD 
+    //                     A
+    // B                                       C
+    //           D                   E
+    //                     F
+    //           G                   H
+    // I                                       J
+    //                     K    
+    //
+    // Which is down-right, down-right, up, down-left, down-left, up.
+    // For each point, can you go up, down, left, right, up-left, up-right, down-left, down-right?
+    // (later there will be more angles, like B->G and I->D->A, but this is a start)
+    
+    // Strong is simpler: down, right, up, left as a closed curve
+    //for (p in portal) {
+    //    if (AFK[portal[p][5]].length > 1) {
+    //    }
+    //}
+    
+    /*
+    var path = ['down', 'right', 'up', 'left'];
+    var iPath = 0;
+    var stack = [];
+    for (a in AFK) {
+        if (AFK[a].length == 1) continue; 
+        for (ai = 0; ai<AFK[a].length-1; ai++) {
+            for (aj = ai+1; aj<AFK[a].length; aj++) {
+                // ai->aj is a down stroke that's a possible beginning of the glyph
+                stack.push();
+            }
+        }
+        
+    }
+    */
+    
+    var path = [[-1,0],[0,1]];  // down, right
+    var stack = [];
+    for (int p0=0; p0<portalCount; p0++) {
+        for (int p1=0; p1<portalCount; p1++) {
+            if (!CompareArrays(adjacency[p0][p1], path[0])) {
+                stack.push([p0,p1]);
+            }
+        }
+    }
+    while (stack.length) {
+        partialPath = stack.pop();
+        var partialPathLength = partialPath.length;
+        for (int p=0; p<portalCount; p++) {
+            if (!CompareArrays(adjacency[partialPath[partialPathLength-1]][p], path[partialPathLength-1])) {
+                var extendedPath = partialPath.slice();
+                extendedPath.push(p);
+                if (partialPathLength < path.length) {
+                    stack.push(extendedPath);
+                }
+                else {
+                    // Found full length path with the correct turns
+                    linePoints = extendedPath.map(function (item) {
+                        return new google.maps.LatLng(portal[item][0], portal[item][1]);
+                    });            
+
+                    var polyLine = new google.maps.Polyline({
+                        path: linePoints.slice(0,1),
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 2,
+                        map: map
+                    });
+                    var polyLine2 = new google.maps.Polyline({
+                        path: linePoints.slice(1,2),
+                        strokeColor: '#0000FF',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 2,
+                        map: map
+                    });                }
+            }
+        }
+    }
     
     /* CONVEX HULLERY
     var label = 0;
