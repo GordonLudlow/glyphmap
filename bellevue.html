@@ -218,6 +218,14 @@ function renderPortals() {
         }
     }
     
+    var sqDist =[]; 
+    while (sqDist.push([]) < portalCount);
+    for (var p0=0; p0<portalCount; p0++) {
+        for (var p1=0; p1<portalCount; p1++) {
+            sqDist[p0][p1] = 0;
+        }
+    }    
+    
     findAdjacent(adjacency,  4, 7);
     findAdjacent(adjacency, -4, 7);
     findAdjacent(adjacency,  1, 0);
@@ -320,8 +328,19 @@ function renderPortals() {
     }
     */
     
+    
+    
+    var up = [1,0];
+    var down = [-1,0];
+    var right = [0,1];
+    var left = [0,-1];
+    var downRight47 = [-4,-7];
+    var upLeft47 = [4,7];
+    
     //var path = [[-1,0],[0,1]];  // down, right
-    var path = [[-1,0],[-4,-7]]; // barrier: down, down-right
+    var path = [down,downRight47]; // barrier: down, down-right
+    var sqDistances = [16*16, 14*14 + 8*8];
+    
     var stack = [];
     for (var p0=0; p0<portalCount; p0++) {
         for (var p1=0; p1<portalCount; p1++) {
@@ -330,6 +349,7 @@ function renderPortals() {
             }
         }
     }
+    var minError = Number.MAX_VALUE;
     while (stack.length) {
         partialPath = stack.pop();
         var partialPathLength = partialPath.length;
@@ -342,24 +362,47 @@ function renderPortals() {
                 }
                 else {
                     // Found full length path with the correct turns
-                    linePoints = extendedPath.map(function (item) {
-                        return new google.maps.LatLng(portal[item][0], portal[item][1]);
-                    });            
+                    // Compare relative segment lengths
+                    
+                    // First, make sure we have all the squared distances calculated
+                    for (var ppi=0;ppi<partialPathLength;ppi++) {
+                        // find the dist between points if it's not in the sqDist cache
+                        if (!sqDist[partialPath[ppi]][partialPath[ppi+1]]) {
+                            dlat = portal[partialPath[ppi]][0] - portal[partialPath[ppi+1]][0];
+                            dlng = portal[partialPath[ppi]][1] - portal[partialPath[ppi+1]][1];
+                            sqDist[partialPath[ppi]][partialPath[ppi+1]] = dlat*dlat + dlng*dlng;
+                        }
+                    }
+                    
+                    // use the first segment's length as the ratio of pixels squared distance to lat,lng squared distance
+                    var ratio = sqDist[partialPath[0]][partialPath[1]] / sqDistances[0];
+                    var error = 0;
+                    for (var ppi=1;ppi<partialPathLength;ppi++) {
+                        var delta = (sqDistances[partialPath[ppi]][partialPath[ppi+1]] * ratio) - sqDist[partialPath[ppi]][partialPath[ppi+1]];
+                        error += delta*delta;
+                    }
+                    if (error < minError) {
+                        minError = error;
+                    
+                        linePoints = extendedPath.map(function (item) {
+                            return new google.maps.LatLng(portal[item][0], portal[item][1]);
+                        });            
 
-                    var polyLine = new google.maps.Polyline({
-                        path: linePoints.slice(0,2),
-                        strokeColor: '#FF0000',
-                        strokeOpacity: 1.0,
-                        strokeWeight: 2,
-                        map: map
-                    });
-                    var polyLine2 = new google.maps.Polyline({
-                        path: linePoints.slice(1,3),
-                        strokeColor: '#0000FF',
-                        strokeOpacity: 1.0,
-                        strokeWeight: 2,
-                        map: map
-                    });
+                        var polyLine = new google.maps.Polyline({
+                            path: linePoints.slice(0,2),
+                            strokeColor: '#FF0000',
+                            strokeOpacity: 1.0,
+                            strokeWeight: 2,
+                            map: map
+                        });
+                        var polyLine2 = new google.maps.Polyline({
+                            path: linePoints.slice(1,3),
+                            strokeColor: '#0000FF',
+                            strokeOpacity: 1.0,
+                            strokeWeight: 2,
+                            map: map
+                        });
+                    }
                 }
             }
         }
