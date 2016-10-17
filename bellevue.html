@@ -94,8 +94,8 @@ function findAdjacent(adjacent, rise, run) {
                 var p0 = interceptMap[list][i];
                 for (var j=i+1; j<interceptMap[list].length; j++) {
                     var p1 = interceptMap[list][j];
-                    adjacent[p0][p1] = [-rise,-run];
-                    adjacent[p1][p0] = [rise,run];
+                    adjacent[p0][p1] = [rise,run];
+                    adjacent[p1][p0] = [-rise,-run];
                 }
             }
         }
