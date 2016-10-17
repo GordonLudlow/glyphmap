@@ -449,8 +449,8 @@ function renderPortals() {
     
     var path = [[-1,0],[0,1]];  // down, right
     var stack = [];
-    for (int p0=0; p0<portalCount; p0++) {
-        for (int p1=0; p1<portalCount; p1++) {
+    for (var p0=0; p0<portalCount; p0++) {
+        for (var p1=0; p1<portalCount; p1++) {
             if (!CompareArrays(adjacency[p0][p1], path[0])) {
                 stack.push([p0,p1]);
             }
@@ -459,7 +459,7 @@ function renderPortals() {
     while (stack.length) {
         partialPath = stack.pop();
         var partialPathLength = partialPath.length;
-        for (int p=0; p<portalCount; p++) {
+        for (var p=0; p<portalCount; p++) {
             if (!CompareArrays(adjacency[partialPath[partialPathLength-1]][p], path[partialPathLength-1])) {
                 var extendedPath = partialPath.slice();
                 extendedPath.push(p);
