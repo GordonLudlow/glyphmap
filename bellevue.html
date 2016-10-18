@@ -340,7 +340,7 @@ function renderPortals() {
     //var path = [[-1,0],[0,1]];  // down, right
     var path = [down,downRight47]; // barrier: down, down-right
     var sqPixelDist = [16*16, 14*14 + 8*8];
-    
+
     var stack = [];
     for (var p0=0; p0<portalCount; p0++) {
         for (var p1=0; p1<portalCount; p1++) {
@@ -362,6 +362,24 @@ function renderPortals() {
                 }
                 else {
                     // Found full length path with the correct turns
+                    
+                    // Is it long enough?
+                    if (path.length < 5) {
+                        // The glyph itself doesn't have 6 points, are there extra itermediary points?
+                        var intermediates = 0;
+                        for (var epi=0; epi<partialPathLength;epi++) {
+                            for (var pi=0; pi<portalCount; pi++) {
+                                if (!CompareArrays(adjacency[extendedPath[epi]][pi], path[epi])
+                                    && !CompareArrays(adjacency[pi][extendedPath[epi+1]], path[epi])) {
+                                    intermediates++;
+                                }
+                            }
+                        }
+                        if (path.length + intermediates < 5) {
+                            continue;
+                        }
+                    }
+                    
                     // Compare relative segment lengths
                     
                     // First, make sure we have all the squared distances calculated
@@ -402,7 +420,7 @@ function renderPortals() {
         map: map
     });
     var polyLine2 = new google.maps.Polyline({
-        path: linePoints.slice(1,3),
+        path: linePoints.slice(1),
         strokeColor: '#0000FF',
         strokeOpacity: 1.0,
         strokeWeight: 2,
