@@ -689,6 +689,21 @@ function save() {
 //,
 //[47.631679,-122.208507]
 
+function addPortal(latLng) {
+    newPortals.push(latLng);
+
+    var pinColor = "75FE69";
+    var pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=o|" + pinColor,
+        new google.maps.Size(21, 34),
+        new google.maps.Point(0,0),
+        new google.maps.Point(10, 34));
+    marker = new google.maps.Marker({
+        map: map,
+        position: new google.maps.LatLng(latLng[0], latLng[1]),
+        icon: pinImage
+    });
+}
+
 function add() {
     var enteredPortal = document.getElementById('portalEntry').value;
     if (!enteredPortal) {
@@ -733,6 +748,11 @@ function add() {
     addRequest.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
             result = JSON.parse(this.responseText);
+            if (result.status == 'ZERO_RESULTS') {
+                document.getElementById('status').innerHTML = 'Google reverse geocoding failed.  Added portal anyway.';
+                addPortal(latLng);
+                return;
+            }
             if (result.status != 'OK') {
                 document.getElementById('status').innerHTML = result.status; 
                 return;
@@ -742,18 +762,8 @@ function add() {
                 var componentCount = result.results[r].address_components.length;
                 for (var c =0; c<componentCount; c++) {
                     if (result.results[r].address_components[c].short_name == 'Bellevue') {
-                        newPortals.push(latLng);
+                        addPortal(latLng);
 
-                        var pinColor = "75FE69";
-                        var pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=o|" + pinColor,
-                            new google.maps.Size(21, 34),
-                            new google.maps.Point(0,0),
-                            new google.maps.Point(10, 34));
-                        marker = new google.maps.Marker({
-                            map: map,
-                            position: new google.maps.LatLng(latLng[0], latLng[1]),
-                            icon: pinImage
-                        });
                         document.getElementById('status').innerHTML = 'Portal added'; 
                         document.getElementById('portalEntry').value = '';
                         return;
