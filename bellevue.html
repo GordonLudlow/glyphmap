@@ -367,27 +367,32 @@ function renderPortals() {
                     if (path.length < 5) {
                         // The glyph itself doesn't have 6 points, are there extra itermediary points?
                         var intermediates = 0;
+                        var intermediateCenters = [];
                         for (var epi=0; epi<partialPathLength;epi++) {
                             for (var pi=0; pi<portalCount; pi++) {
                                 if (!CompareArrays(adjacency[extendedPath[epi]][pi], path[epi])
                                     && !CompareArrays(adjacency[pi][extendedPath[epi+1]], path[epi])) {
                                     intermediates++;
 
-                                    var circle = new google.maps.Circle({
-                                        strokeColor: '#FF0000',
-                                        strokeOpacity: 0.8,
-                                        strokeWeight: 2,
-                                        fillColor: '#FF0000',
-                                        fillOpacity: 0.35,
-                                        map: map,
-                                        center: {lat: portal[pi][0], lng: portal[pi][1]},
-                                        radius: 50});                                    
+                                    intermediateCenters.push({lat: portal[pi][0], lng: portal[pi][1]});
+                               
                                 }
                             }
                         }
                         if (path.length + intermediates < 5) {
                             continue;
                         }
+                        for (center in intermediateCenters) {
+                            var circle = new google.maps.Circle({
+                                strokeColor: '#FF0000',
+                                strokeOpacity: 0.8,
+                                strokeWeight: 2,
+                                fillColor: '#FF0000',
+                                fillOpacity: 0.35,
+                                map: map,
+                                center: center,
+                                radius: 30}); 
+                        }                                
                     }
                     
                     // Compare relative segment lengths
