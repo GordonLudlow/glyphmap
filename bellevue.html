@@ -416,7 +416,7 @@ function renderPortals() {
                     var ratio = dist[partialPath[0]][partialPath[1]] / pixelDist[0];
                     var error = 0;
                     for (var ppi=1;ppi<partialPathLength;ppi++) {
-                        var delta = (pixelDist[ppi] * ratio) - dist[extendedPath[ppi]][extendedPath[ppi+1]];
+                        var delta = Math.abs((pixelDist[ppi] * ratio) - dist[extendedPath[ppi]][extendedPath[ppi+1]]);
                         error += delta;
                     }
                     if (error < minError) {
