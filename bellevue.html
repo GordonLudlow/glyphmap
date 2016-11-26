@@ -423,8 +423,8 @@ function render() {
                     var maxLng = Number.NEGATIVE_INFINITY;
                     
                     for (var ppi=0;ppi<=partialPathLength;ppi++) {
-                        var lat = extendedPath[ppi][0];
-                        var lng = extendedPath[ppi][1];
+                        var lat = portal[extendedPath[ppi]][0];
+                        var lng = portal[extendedPath[ppi]][1];
                         if (lat < minLat) minLat = lat;
                         if (lat > maxLat) maxLat = lat;
                         if (lng < minLng) minLng = lng;
