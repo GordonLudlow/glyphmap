@@ -131,25 +131,35 @@ function CompareArrays(a1, a2) {
     }       
     return 0;
 }
-            
-function renderPortals() {
-    for (var point=0; point<portalCount; point++) {
-        var lat = portal[point][0];
-        var lng = portal[point][1];
-        var mapLat = (lat + .001).toString();
-        var mapLng = (lng - .001).toString();
-        var url = 'https://www.ingress.com/intel?ll=' + mapLat + ',' + mapLng + '&z=17&pll=' + lat + ',' + lng;
+function AddMarker(lat, lng) {
+    var mapLat = (lat + .001).toString();
+    var mapLng = (lng - .001).toString();
+    var url = 'https://www.ingress.com/intel?ll=' + mapLat + ',' + mapLng + '&z=17&pll=' + lat + ',' + lng;
 
-        marker = new google.maps.Marker({
-            map: map,
-            title: url,
-            url: url,                
-            position: new google.maps.LatLng(lat, lng)
-        });
-        google.maps.event.addListener(marker, 'click', function() {
-            saveMapOptions();
-            window.location.href = this.url;
-        });              
+    marker = new google.maps.Marker({
+        map: map,
+        title: url,
+        url: url,                
+        position: new google.maps.LatLng(lat, lng)
+    });
+    google.maps.event.addListener(marker, 'click', function() {
+        saveMapOptions();
+        window.location.href = this.url;
+    });          
+}              
+function render() {
+    // What glyph are we rendering?
+    var element = document.getElementById("glyph");
+    if (element.selectedIndex == -1)
+        var glyph = "None";
+    else
+        var glyph = element[element.selectedIndex].text;
+
+    if (glyph == "None") {
+        for (var point=0; point<portalCount; point++) {
+            AddMarker(portal[point][0], portal[point][1]);          
+        }
+        return;
     }
 
     //                     A
@@ -370,20 +380,20 @@ function renderPortals() {
                     // Is it long enough?
                     if (path.length < 5) {
                         // The glyph itself doesn't have 6 points, are there extra itermediary points?
-                        var intermediates = 0;
-                        //var intermediateCenters = [];
+                        var intermediateCount = 0;
+                        var intermediates = [];
                         for (var epi=0; epi<partialPathLength;epi++) {
                             for (var pi=0; pi<portalCount; pi++) {
                                 if (!CompareArrays(adjacency[extendedPath[epi]][pi], path[epi])
                                     && !CompareArrays(adjacency[pi][extendedPath[epi+1]], path[epi])) {
-                                    intermediates++;
+                                    intermediateCount++;
 
-                        //            intermediateCenters.push({lat: portal[pi][0], lng: portal[pi][1]});
+                                    intermediates.push(pi);
                                
                                 }
                             }
                         }
-                        if (path.length + intermediates < 5) {
+                        if (path.length + intermediateCount < 5) {
                             continue;
                         }
                         //for (center in intermediateCenters) {
@@ -422,6 +432,7 @@ function renderPortals() {
                     if (error < minError) {
                         minError = error;
                         var bestPath = extendedPath.slice();
+                        var bestIntermediates = intermediates.slice();
                     }
                     //var linePoints = extendedPath.map(function (item) {
                     //    return new google.maps.LatLng(portal[item][0], portal[item][1]);
@@ -444,20 +455,19 @@ function renderPortals() {
     });            
 
     var polyLine = new google.maps.Polyline({
-        path: linePoints.slice(0,2),
+        path: linePoints,
         strokeColor: '#FF0000',
         strokeOpacity: 1.0,
         strokeWeight: 2,
         map: map
     });
-    var polyLine2 = new google.maps.Polyline({
-        path: linePoints.slice(1),
-        strokeColor: '#0000FF',
-        strokeOpacity: 1.0,
-        strokeWeight: 2,
-        map: map
-    });    
-    
+
+    for (p in bestPath) {
+        AddMarker(portal[p][0], portal[p][1]);  
+    }    
+    for (p in bestIntermediates) {
+        AddMarker(portal[p][0], portal[p][1]);      
+    }        
     
     /* CONVEX HULLERY
     var label = 0;
@@ -595,7 +605,7 @@ function initializeMap()
                     for (var p=0; p<portalCount;p++) {
                         portal[p].push(p); // the index will be handy for comparing elements
                     }
-                    renderPortals();
+                    render();
                 }
             }
         };
@@ -803,7 +813,9 @@ function add() {
 src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjVqY8VnMU&callback=initializeMap" async defer>
 </script>
 <div id="header" style="width:100%; height:10%;overflow:auto;">
-<input type="text" id="portalEntry" /> <span id=addPortal><button onclick="add()">Add</button></span><br/>
+<input type="text" id="portalEntry" /> <span id=addPortal><button onclick="add()">Add</button></span>
+<select id="glyph" size="2"><option>None</option><option>Barrier</option></select>
+<br/>
 <span id=status> </span><br/>
 <span id=saveButton><button onclick="save()">Save</button></span><br/>
 </div>
