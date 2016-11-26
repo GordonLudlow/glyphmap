@@ -495,7 +495,7 @@ function render() {
         AddMarker(portal[bestIntermediates[p]][0], portal[bestIntermediates[p]][1]);      
     }        
     
-    document.getElementById('maxSize').innerHTML = bestSize;
+    document.getElementById('status').innerHTML = bestSize;
     
     /* CONVEX HULLERY
     var label = 0;
@@ -859,7 +859,6 @@ src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjV
 <input type="text" id="portalEntry" /> <span id=addPortal><button onclick="add()">Add</button></span>
 <select id="glyph" size="2" onchange="changeGlyph();"><option>None</option><option>Barrier</option></select>
 Max size: <input id="maxSize" type="number" min="0" max="180" value="180" step="0.01" onchange="changeGlyph();>
-<span id="size"></span>
 <br/>
 <span id=status> </span><br/>
 <span id=saveButton><button onclick="save()">Save</button></span><br/>
