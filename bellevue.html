@@ -219,10 +219,13 @@ function renderPortals() {
     }
     
     var sqDist =[]; 
+    var dist = [];
     while (sqDist.push([]) < portalCount);
+    while (dist.push([]) < portalCount);
     for (var p0=0; p0<portalCount; p0++) {
         for (var p1=0; p1<portalCount; p1++) {
             sqDist[p0][p1] = 0;
+            dist[p0][p1] = 0;
         }
     }    
     
@@ -340,6 +343,7 @@ function renderPortals() {
     //var path = [[-1,0],[0,1]];  // down, right
     var path = [down,downRight47]; // barrier: down, down-right
     var sqPixelDist = [16*16, 14*14 + 8*8];
+    var pixelDist = [sqrt(sqPixelDist[0]), sqrt(sqPixelDist[1])];
 
     var stack = [];
     for (var p0=0; p0<portalCount; p0++) {
@@ -404,15 +408,16 @@ function renderPortals() {
                             var dlat = portal[extendedPath[ppi]][0] - portal[extendedPath[ppi+1]][0];
                             var dlng = portal[extendedPath[ppi]][1] - portal[extendedPath[ppi+1]][1];
                             sqDist[extendedPath[ppi]][extendedPath[ppi+1]] = dlat*dlat + dlng*dlng;
+                            dist[extendedPath[ppi]][extendedPath[ppi+1]] = sqrt(sqDist[extendedPath[ppi]][extendedPath[ppi+1]]);
                         }
                     }
                     
                     // use the first segment's length as the ratio of pixels squared distance to lat,lng squared distance
-                    var ratio = sqDist[partialPath[0]][partialPath[1]] / sqPixelDist[0];
+                    var ratio = dist[partialPath[0]][partialPath[1]] / pixelDist[0];
                     var error = 0;
                     for (var ppi=1;ppi<partialPathLength;ppi++) {
-                        var delta = (sqPixelDist[ppi] * ratio) - sqDist[extendedPath[ppi]][extendedPath[ppi+1]];
-                        error += delta*delta;
+                        var delta = (pixelDist[ppi] * ratio) - dist[extendedPath[ppi]][extendedPath[ppi+1]];
+                        error += delta;
                     }
                     if (error < minError) {
                         minError = error;
