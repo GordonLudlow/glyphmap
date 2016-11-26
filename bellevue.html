@@ -463,10 +463,10 @@ function render() {
     });
 
     for (p in bestPath) {
-        AddMarker(portal[p][0], portal[p][1]);  
+        AddMarker(portal[bestPath[p]][0], portal[bestPath[p]][1]);  
     }    
     for (p in bestIntermediates) {
-        AddMarker(portal[p][0], portal[p][1]);      
+        AddMarker(portal[bestIntermediates[p]][0], portal[bestIntermediates[p]][1]);      
     }        
     
     /* CONVEX HULLERY
