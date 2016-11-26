@@ -578,14 +578,17 @@ function initializeMap()
                             zoom: 10,
                             mapTypeId: google.maps.MapTypeId.ROADMAP };
         
-        // Load the map options cookie if there is one
-        var name = "mapOptions=";
+        // Load cookies
+        var mapOptionsKey = "mapOptions=";
+        var glyphKey = "glyph=";
         var ca = document.cookie.split(';');
         for(var i = 0; i <ca.length; i++) {
             var c = ca[i].trim();
-            if (c.indexOf(name) == 0) {
-                mapOptions = JSON.parse(c.substring(name.length));
-                break;
+            if (c.indexOf(mapOptionsKey) == 0) {
+                mapOptions = JSON.parse(c.substring(mapOptionsKey.length));
+            }
+            if (c.indexOf(glyphKey) == 0) {
+                document.getElementById("glyph").selectedIndex = JSON.parse(c.substring(glyphKey.length)
             }
         }        
         
@@ -805,6 +808,20 @@ function add() {
     };
     addRequest.send();  
 }
+function changeGlyph() {
+    // Save a cookie for what glyph is selected
+    var d = new Date();
+    d.setTime(d.getTime() + (7*24*60*60*1000)); // keep it for a week
+    var expires = "expires="+d.toUTCString();
+
+    document.cookie = "glyph=" + JSON.stringify(document.getElementById("glyph").selectedIndex) + "; " + expires;
+
+    // Save map options too
+    saveMapOptions();
+    
+    // Reload the 
+    window.location.reload(true);
+}
 </script>
 </head>
 
@@ -814,7 +831,7 @@ src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjV
 </script>
 <div id="header" style="width:100%; height:10%;overflow:auto;">
 <input type="text" id="portalEntry" /> <span id=addPortal><button onclick="add()">Add</button></span>
-<select id="glyph" size="2"><option>None</option><option>Barrier</option></select>
+<select id="glyph" size="2" onchange="changeGlyph();"><option>None</option><option>Barrier</option></select>
 <br/>
 <span id=status> </span><br/>
 <span id=saveButton><button onclick="save()">Save</button></span><br/>
