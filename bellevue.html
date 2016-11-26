@@ -342,8 +342,8 @@ function renderPortals() {
     
     //var path = [[-1,0],[0,1]];  // down, right
     var path = [down,downRight47]; // barrier: down, down-right
-    var sqPixelDist = [16*16, 14*14 + 8*8];
-    var pixelDist = [Math.sqrt(sqPixelDist[0]), Math.sqrt(sqPixelDist[1])];
+    var sqPixelDist = [1,1];//[16*16, 14*14 + 8*8];
+    var pixelDist = [1,1];//[Math.sqrt(sqPixelDist[0]), Math.sqrt(sqPixelDist[1])];
 
     var stack = [];
     for (var p0=0; p0<portalCount; p0++) {
