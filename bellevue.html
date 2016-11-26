@@ -62,10 +62,10 @@ function saveCookies() {
     document.cookie = "mapOptions=" + JSON.stringify(mapOptions) + "; " + expires;   
     
     // Save a which glyph is selected
-    document.cookie += "glyph=" + JSON.stringify(document.getElementById("glyph").selectedIndex) + "; " + expires;
+    document.cookie = "glyph=" + JSON.stringify(document.getElementById("glyph").selectedIndex) + "; " + expires;
  
     // Save max glyph size
-    document.cookie += "maxSize=" + JSON.stringify(document.getElementById("maxSize").value) + "; " + expires;
+    document.cookie = "maxSize=" + JSON.stringify(document.getElementById("maxSize").value) + "; " + expires;
  }
 
 function findAdjacent(adjacent, rise, run) {
