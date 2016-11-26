@@ -49,7 +49,7 @@ var mapInitialized=false;
     else window.convexHull = convexHull;
 })();
 
-function saveMapOptions() {
+function saveCookies() {
     // Save current map options so that they'll be retained
     var d = new Date();
     d.setTime(d.getTime() + (7*24*60*60*1000)); // keep it for a week
@@ -60,7 +60,13 @@ function saveMapOptions() {
                         mapTypeId: map.getMapTypeId() };
 
     document.cookie = "mapOptions=" + JSON.stringify(mapOptions) + "; " + expires;   
-}
+    
+    // Save a which glyph is selected
+    document.cookie += "glyph=" + JSON.stringify(document.getElementById("glyph").selectedIndex) + "; " + expires;
+ 
+    // Save max glyph size
+    document.cookie += "maxSize=" + JSON.stringify(document.getElementById("maxSize").value) + "; " + expires;
+ }
 
 function findAdjacent(adjacent, rise, run) {
     var interceptMap = {};
@@ -143,7 +149,7 @@ function AddMarker(lat, lng) {
         position: new google.maps.LatLng(lat, lng)
     });
     google.maps.event.addListener(marker, 'click', function() {
-        saveMapOptions();
+        saveCookies();
         window.location.href = this.url;
     });          
 }              
@@ -409,6 +415,25 @@ function render() {
                         //}                                
                     }
                     
+                    // Make sure it isn't too big
+                    var maxSize = document.getElementById("maxSize").value;
+                    var minLat = Number.MAX_VALUE;
+                    var minLng = Number.MAX_VALUE;
+                    var maxLat = Number.NEGATIVE_INFINITY;
+                    var maxLng = Number.NEGATIVE_INFINITY;
+                    
+                    for (var ppi=0;ppi<=partialPathLength;ppi++) {
+                        var lat = extendedPath[ppi][0];
+                        var lng = extendedPath[ppi][1];
+                        if (lat < minLat) minLat = lat;
+                        if (lat < maxLat) maxLat = lat;
+                        if (lng < minLng) minLng = lng;
+                        if (lng < maxLng) maxLng = lng;
+                    }
+                    if (maxLat - minLat > maxSize || maxLng - minLng > maxSize) {
+                        continue;
+                    }
+                    
                     // Compare relative segment lengths
                     
                     // First, make sure we have all the squared distances calculated
@@ -433,6 +458,7 @@ function render() {
                         minError = error;
                         var bestPath = extendedPath.slice();
                         var bestIntermediates = intermediates.slice();
+                        var bestSize = '(' + (maxLat-minLat).toString() + ', ' + (maxLng-minLng).toString() + ')';
                     }
                     //var linePoints = extendedPath.map(function (item) {
                     //    return new google.maps.LatLng(portal[item][0], portal[item][1]);
@@ -468,6 +494,8 @@ function render() {
     for (p in bestIntermediates) {
         AddMarker(portal[bestIntermediates[p]][0], portal[bestIntermediates[p]][1]);      
     }        
+    
+    document.getElementById('size').innerHTML = bestSize;
     
     /* CONVEX HULLERY
     var label = 0;
@@ -581,6 +609,7 @@ function initializeMap()
         // Load cookies
         var mapOptionsKey = "mapOptions=";
         var glyphKey = "glyph=";
+        var maxSizeKey = "maxSize=";
         var ca = document.cookie.split(';');
         for(var i = 0; i <ca.length; i++) {
             var c = ca[i].trim();
@@ -589,6 +618,9 @@ function initializeMap()
             }
             if (c.indexOf(glyphKey) == 0) {
                 document.getElementById("glyph").selectedIndex = JSON.parse(c.substring(glyphKey.length));
+            }
+            if (c.indexOf(maxSizeKey) == 0) {
+                document.getElementById("maxSize").value = JSON.parse(c.substring(maxSizeKey.length))
             }
         }        
         
@@ -689,7 +721,7 @@ function handleSaveRequest()
             //window.location.href += "?foo=bar"; //to pass in parameter(s) of the current viewport
         
             // Save current map options so that they'll be retained
-            saveMapOptions();
+            saveCookies();
          
             window.location.reload(true);
         }
@@ -809,17 +841,11 @@ function add() {
     addRequest.send();  
 }
 function changeGlyph() {
-    // Save a cookie for what glyph is selected
-    var d = new Date();
-    d.setTime(d.getTime() + (7*24*60*60*1000)); // keep it for a week
-    var expires = "expires="+d.toUTCString();
 
-    document.cookie = "glyph=" + JSON.stringify(document.getElementById("glyph").selectedIndex) + "; " + expires;
-
-    // Save map options too
-    saveMapOptions();
+    // Save state
+    saveCookies();
     
-    // Reload the 
+    // Reload the page
     window.location.reload(true);
 }
 </script>
@@ -832,6 +858,8 @@ src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjV
 <div id="header" style="width:100%; height:10%;overflow:auto;">
 <input type="text" id="portalEntry" /> <span id=addPortal><button onclick="add()">Add</button></span>
 <select id="glyph" size="2" onchange="changeGlyph();"><option>None</option><option>Barrier</option></select>
+Max size: <input id="maxSize" type="number" min="0" max="180" value="180" step="0.01" onchange="changeGlyph();>
+<span id="size"></span>
 <br/>
 <span id=status> </span><br/>
 <span id=saveButton><button onclick="save()">Save</button></span><br/>
