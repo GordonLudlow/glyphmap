@@ -426,9 +426,9 @@ function render() {
                         var lat = extendedPath[ppi][0];
                         var lng = extendedPath[ppi][1];
                         if (lat < minLat) minLat = lat;
-                        if (lat < maxLat) maxLat = lat;
+                        if (lat > maxLat) maxLat = lat;
                         if (lng < minLng) minLng = lng;
-                        if (lng < maxLng) maxLng = lng;
+                        if (lng > maxLng) maxLng = lng;
                     }
                     if (maxLat - minLat > maxSize || maxLng - minLng > maxSize) {
                         continue;
