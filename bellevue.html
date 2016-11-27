@@ -187,41 +187,7 @@ function render() {
     // I = (0,   96) => ( 0, 24)
     // J = (112, 96) => (28, 24)
     // K = (56, 128) => (14, 32)
-    
-    // Concentric convex hulls would be a good start.  ABCIJK are on an outer hull.  DEGH an inner hull.  F is a center point.
-    // Outlying points can be discarded to get the right shape.
-    
-    // Or... maybe it's not convex hulls, maybe it's finding colinear points BDFHJ and CEFGI (each 8.06 units apart)and AFK (each 16 units apart)
-    // sqrt(7^2 + 4^2) = sqrt(65) = sqrt(5*13) = 8.0622577483-ish
-    // It would probably look right if AFK distances were just double the other distances.
-    // Or use squared distances of 65 and 256.  (64 and 256 would be 4 times the squared distance)
-    
-    // a latitude difference of 0.000068 looks pretty level (horizontal line)
-    
-    // Angle of BDFHJ
-    // dx = 7, dy = 4
-    // latitude increases to the north (around here) and longitude increases to the east
-    // so from B to D, we want lat to decrease and lng to increase and we want the lat/long ratio to be 4/7 or the long/lat ratio to be 7/4 = 1.75
-    
-    // How do we find in our point soup, 5 equally spaced points with dlong/dlat = 1.75?
-    // Maybe first find all the points with the right relative slope, partition the set into sets of parallel lines
-    
-    // The grouping would be... y-intercept.  longitude intercept
-    // Given a point, 47.566674,-122.166767
-    // The line through it with decreasing latitude and increasing (to 0) longitude with slope 7/4 intercepts (ignoring reality) long=0 
-    // at lat = 47.566674 - 4*(122.166767/7) = -22.24290714, so we'd group it with other points that have a long intercept of approx -22.2429
-    
-    // Then the whole problem can by solved by grouping the points into 3 grouping schemes.  The BDFHJ angle, the CEFGI angle and by equal longitude (AFK).
-    // Then... find the best F.
-    
-    //var BDFHJ = {};
-    //var CEFGI = {};
-    //var AFK = {}; // vertical
-    //var DE = {}; // horizontal
-    
-    // Need a better data structure
-    // For each of the angles of interest, find adjacency.  Put it in an adgacency graph.
-    
+        
     var adjacency =[]; // for each pair of portals, the slope of the line between them
                        // the slope is expressed as a tuple indicating direction
                        // (up or down) one of the interesting lines
@@ -249,116 +215,26 @@ function render() {
     findAdjacent(adjacency, -4, 7);
     findAdjacent(adjacency,  1, 0);
     findAdjacent(adjacency,  0, 1);
-
-
-
-    //linePoints = AFK[list].map(function (item) {
-    //    return new google.maps.LatLng(item[0], item[1]);
-    //});            
-
-    //var polyLine = new google.maps.Polyline({
-    //    path: linePoints,
-    //    strokeColor: '#FF0000',
-    //    strokeOpacity: 1.0,
-    //    strokeWeight: 2,
-    //    map: map
-    //});    
  
-    // Find F candidates
-    /*
-    var candidates = 0;
-    for (b in BDFHJ) {
-        if (BDFHJ[b].length >= 5) {
-            for (c in CEFGI) {
-                if (CEFGI[c].length >= 5) {
-                    for (a in AFK) {
-                        if (AFK[a].length >= 3) {
-                            for (bi in BDFHJ[b]) {
-                                for (ci in CEFGI[c]) {
-                                    if (BDFHJ[b][bi][2] == CEFGI[c][ci][2]) {
-                                        for (ai in AFK[a]) {
-                                            if (AFK[a][ai][2] == BDFHJ[b][bi][2]) {
-                                                // Found a candidate!
-                                                var circle = new google.maps.Circle({
-                                                    strokeColor: '#00FF00',
-                                                    strokeOpacity: 0.8,
-                                                    strokeWeight: 2,
-                                                    fillColor: '#FF0000',
-                                                    fillOpacity: 0.35,
-                                                    map: map,
-                                                    center: {lat: AFK[a][ai][0], lng: AFK[a][ai][1]},
-                                                    radius: 40});                                                
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
-    
-    // No F candidates yet, try something simpler
-    // "Truth" is DFHEFGD 
-    //                     A
-    // B                                       C
-    //           D                   E
-    //                     F
-    //           G                   H
-    // I                                       J
-    //                     K    
-
-   
-    // "Truth" is DFHEFGD 
-    //                     A
-    // B                                       C
-    //           D                   E
-    //                     F
-    //           G                   H
-    // I                                       J
-    //                     K    
-    //
-    // Which is down-right, down-right, up, down-left, down-left, up.
-    // For each point, can you go up, down, left, right, up-left, up-right, down-left, down-right?
-    // (later there will be more angles, like B->G and I->D->A, but this is a start)
-    
-    // Strong is simpler: down, right, up, left as a closed curve
-    //for (p in portal) {
-    //    if (AFK[portal[p][5]].length > 1) {
-    //    }
-    //}
-    
-    /*
-    var path = ['down', 'right', 'up', 'left'];
-    var iPath = 0;
-    var stack = [];
-    for (a in AFK) {
-        if (AFK[a].length == 1) continue; 
-        for (ai = 0; ai<AFK[a].length-1; ai++) {
-            for (aj = ai+1; aj<AFK[a].length; aj++) {
-                // ai->aj is a down stroke that's a possible beginning of the glyph
-                stack.push();
-            }
-        }
-        
-    }
-    */
-    
-    
-    
     var up = [1,0];
     var down = [-1,0];
     var right = [0,1];
     var left = [0,-1];
     var downRight47 = [-4,-7];
     var upLeft47 = [4,7];
+    var downLeft47 = [-4,7];    
     
     //var path = [[-1,0],[0,1]];  // down, right
-    var path = [down,downRight47]; // barrier: down, down-right
-    var sqPixelDist = [16*16, 14*14 + 8*8];
+    var glyphPath = {
+        'Barrier' : [down,downRight47], // barrier: down, down-right
+        'Path'    : [down,downLeft47]
+    };
+    var glypPixelDist = {
+        'Barrier' : [16*16, 14*14 + 8*8],
+        'Path'    : [16*16, 14*14 + 8*8]
+    };
+    var path = glypPath[glyph];
+    var sqPixelDist = glypPixelDist[glyph];
     var pixelDist = [Math.sqrt(sqPixelDist[0]), Math.sqrt(sqPixelDist[1])];
 
     var stack = [];
@@ -857,7 +733,11 @@ src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjV
 </script>
 <div id="header" style="width:100%; height:10%;overflow:auto;">
 <input type="text" id="portalEntry" /> <span id=addPortal><button onclick="add()">Add</button></span>
-<select id="glyph" size="2" onchange="changeGlyph();"><option>None</option><option>Barrier</option></select>
+<select id="glyph" size="2" onchange="changeGlyph();">
+    <option>None</option>
+    <option>Barrier</option>
+    <option>Path</option>    
+</select>
 Max size: <input id="maxSize" type="number" min="0" max="180" value="180" step="0.01" onchange="changeGlyph();">
 <br/>
 <span id=status> </span><br/>
