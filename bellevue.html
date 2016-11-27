@@ -232,12 +232,14 @@ function render() {
     var glyphPath = {
         'Barrier' : [down,downRight47], // barrier: down, down-right
         'Path'    : [down,downLeft47],  // path: down, down-left
-        'Gain'    : [downRight12_7]     // gain: down-right from B to G
+        'Gain'    : [downRight12_7],    // gain: down-right from B to G
+        'Clear'   : [down]              // clear: straight line
     };
     var glypPixelDist = {
         'Barrier' : [16*16, 14*14 + 8*8],
         'Path'    : [16*16, 14*14 + 8*8],
-        'Gain'    : [1]
+        'Gain'    : [1],
+        'Clear'   : [1]
     };
     var path = glyphPath[glyph];
     var sqPixelDist = glypPixelDist[glyph];
