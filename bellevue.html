@@ -267,8 +267,8 @@ function render() {
                     }
                     
                     // Make sure the points aren't too far apart
-                    var dLat = math.Abs(portal[p0][0] - portal[p1][0]);
-                    var dLng = math.Abs(portal[p0][1] - portal[p1][1]);
+                    var dLat = Math.abs(portal[p0][0] - portal[p1][0]);
+                    var dLng = Math.abs(portal[p0][1] - portal[p1][1]);
                     if ( dLat > maxSize || dLng > maxSize) {
                         continue;
                     }
