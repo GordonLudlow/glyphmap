@@ -211,10 +211,12 @@ function render() {
         }
     }    
     
-    findAdjacent(adjacency,  4, 7);
-    findAdjacent(adjacency, -4, 7);
-    findAdjacent(adjacency,  1, 0);
-    findAdjacent(adjacency,  0, 1);
+    findAdjacent(adjacency,   4, 7);
+    findAdjacent(adjacency,  -4, 7);
+    findAdjacent(adjacency,   1, 0);
+    findAdjacent(adjacency,   0, 1);
+    findAdjacent(adjacency,  12, 7);
+    findAdjacent(adjacency, -12, 7);    
  
     var up = [1,0];
     var down = [-1,0];
@@ -224,15 +226,18 @@ function render() {
     var upLeft47 = [4,7];
     var upRight47 = [-4,7];    
     var downLeft47 = [4,-7];
+    var downRight12_7 = [-12,-7];
     
     //var path = [[-1,0],[0,1]];  // down, right
     var glyphPath = {
         'Barrier' : [down,downRight47], // barrier: down, down-right
-        'Path'    : [down,downLeft47]
+        'Path'    : [down,downLeft47],  // path: down, down-left
+        'Gain'    : [downRight12_7]     // gain: down-right from B to G
     };
     var glypPixelDist = {
         'Barrier' : [16*16, 14*14 + 8*8],
-        'Path'    : [16*16, 14*14 + 8*8]
+        'Path'    : [16*16, 14*14 + 8*8],
+        'Gain'    : [1]
     };
     var path = glyphPath[glyph];
     var sqPixelDist = glypPixelDist[glyph];
@@ -737,7 +742,8 @@ src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjV
 <select id="glyph" size="2" onchange="changeGlyph();">
     <option>None</option>
     <option>Barrier</option>
-    <option>Path</option>    
+    <option>Path</option>   
+    <option>Gain</option>    
 </select>
 Max size: <input id="maxSize" type="number" min="0" max="180" value="180" step="0.01" onchange="changeGlyph();">
 <br/>
