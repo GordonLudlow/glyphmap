@@ -358,6 +358,8 @@ function render() {
         }
     }
 
+    if (!bestPath) return;
+    
     var linePoints = bestPath.map(function (item) {
         return new google.maps.LatLng(portal[item][0], portal[item][1]);
     });            
@@ -378,105 +380,6 @@ function render() {
     }        
     
     document.getElementById('status').innerHTML = bestSize;
-    
-    /* CONVEX HULLERY
-    var label = 0;
-    var labels = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    
-    while (portalCount > 1) {
-        var pointArray = portal.map(function (item) {
-            var obj = {};
-            obj['x'] = item[0];
-            obj['y'] = item[1];
-            return obj;            
-        }); 
-        var hullPoints = convexHull(pointArray);
-        // the first point in the list is in the bottom right (SE) corner of the hull
-        // points follow in counterclockwise order
-        
-        // Remove these points from the portal set for the next pass of convex hullery
-        for( var i=portalCount - 1; i>=0; i--){
-            for( var j=0; j<hullPoints.length; j++){
-                if(portal[i][0] == hullPoints[j].x && portal[i][1] == hullPoints[j].y){
-                    portal.splice(i, 1);
-                    portalCount--;
-                    j = hullPoints.length;
-                }
-            }
-        }
-        
-        //Convert to google latlng objects
-        hullPoints = hullPoints.map(function (item) {
-            return new google.maps.LatLng(item.x, item.y);
-        });
-
-        
-        var polyHull = new google.maps.Polygon({
-            paths: hullPoints,
-            strokeColor: '#000',
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
-            fillColor: '#000',
-            fillOpacity: 0.1
-        });
-
-        polyHull.setMap(map);   
-        
-        
-        for (var j=0; j<hullPoints.length; j++){
-            var lat = hullPoints[j].lat().toString();
-            var lng = hullPoints[j].lng().toString();
-            var mapLat = (lat + .001).toString();
-            var mapLng = (lng - .001).toString();
-            var url = 'https://www.ingress.com/intel?ll=' + mapLat + ',' + mapLng + '&z=17&pll=' + lat + ',' + lng
-
-            var marker;
-            
-            if (j==0) {
-                var pinColor = "75FE69";
-                var pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=" + labels[label % labels.length] + "|" + pinColor,
-                    new google.maps.Size(21, 34),
-                    new google.maps.Point(0,0),
-                    new google.maps.Point(10, 34));
-                marker = new google.maps.Marker({
-                    map: map,
-                    position: hullPoints[j],
-                    title: url,
-                    url: url,
-                    icon: pinImage
-                });
-            }
-            else if (j==1) {
-                var pinColor = "7569FE";
-                var pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=" + labels[label % labels.length] + "|" + pinColor,
-                    new google.maps.Size(21, 34),
-                    new google.maps.Point(0,0),
-                    new google.maps.Point(10, 34));
-                marker = new google.maps.Marker({
-                    map: map,
-                    position: hullPoints[j],
-                    title: url,
-                    url: url,
-                    icon: pinImage
-                });                
-            }
-            else {
-            
-                marker = new google.maps.Marker({
-                    map: map,
-                    position: hullPoints[j],
-                    label: labels[label % labels.length],
-                    title: url,
-                    url: url
-                });
-            }
-            google.maps.event.addListener(marker, 'click', function() {
-                window.location.href = this.url;
-            });                
-        }
-        label++;  
-    }
-    */
 }
 
 function initializeMap() 
