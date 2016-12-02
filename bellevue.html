@@ -230,12 +230,14 @@ function render() {
     
     //var path = [[-1,0],[0,1]];  // down, right
     var glyphPath = {
+        'Abandon' : [upLeft47, upRight47], // abandon
         'Barrier' : [down,downRight47], // barrier: down, down-right
         'Path'    : [down,downLeft47],  // path: down, down-left
         'Gain'    : [downRight12_7],    // gain: down-right from B to G
         'Clear'   : [down]              // clear: straight line
     };
     var glypPixelDist = {
+        'Abandon' : [14*14 + 8*8, 16*16 + 28*28],
         'Barrier' : [16*16, 14*14 + 8*8],
         'Path'    : [16*16, 14*14 + 8*8],
         'Gain'    : [1],
