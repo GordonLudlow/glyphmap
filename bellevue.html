@@ -227,11 +227,13 @@ function render() {
     var upRight47 = [-4,7];    
     var downLeft47 = [4,-7];
     var downRight12_7 = [-12,-7];
+    var upRight12_7 = [-12,7];
     
     //var path = [[-1,0],[0,1]];  // down, right
     var glyphPath = {
         'Abandon' : [upLeft47, upRight47], // abandon
         'Adapt'   : [downRight12_7, upLeft47, downRight47],
+        'Advance' : [upRight12_7],
         'Barrier' : [down,downRight47], // barrier: down, down-right
         'Path'    : [down,downLeft47],  // path: down, down-left
         'Gain'    : [downRight12_7],    // gain: down-right from B to G
@@ -240,6 +242,7 @@ function render() {
     var glypPixelDist = {
         'Abandon' : [14*14 + 8*8, 16*16 + 28*28],
         'Adapt'   : [7*7+12*12, 7*7+4*4, 7*7+4*4],
+        'Advance' : [1],
         'Barrier' : [16*16, 14*14 + 8*8],
         'Path'    : [16*16, 14*14 + 8*8],
         'Gain'    : [1],
