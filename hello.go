@@ -3,7 +3,6 @@ package hello
 import (
     "fmt"
     "net"
-    "net/url" 
     "net/http"
     "encoding/json"
 
@@ -31,7 +30,7 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
     if err != nil {
         panic(err)
     }
-    err := decoder.Decode(&coords)
+    err = decoder.Decode(&coords)
     if err != nil {
         panic(err)
     }
