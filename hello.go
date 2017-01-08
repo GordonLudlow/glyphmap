@@ -30,6 +30,7 @@ func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
     if err != nil {
         panic(err)
     }
+    log.Infof(ctx, "city=%s", city)
     err = decoder.Decode(&coords)
     if err != nil {
         panic(err)
@@ -84,7 +85,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
             continue
         }
         fmt.Fprintf(w, "%s[%f,%f]", leadingComma, lat, lng)
-        log.Infof(ctx, "%s[%f,%f]", leadingComma, lat, lng)
         leadingComma = ","
     }
     if err := rows.Err(); err != nil {

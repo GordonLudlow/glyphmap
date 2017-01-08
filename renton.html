@@ -573,7 +573,7 @@ function save() {
     }
     document.getElementById('status').innerHTML = 'Saving...'; 
     
-    var data = '"Renton", [';
+    var data = '"Renton" [';
     var leadingComma = '';
     for (var p=0; p < newPortals.length; p++) {
         data += leadingComma + '[' + String(newPortals[p][0]) + ',' + String(newPortals[p][1]) + ']';
