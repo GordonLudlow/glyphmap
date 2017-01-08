@@ -52,7 +52,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
     db, err := sql.Open("mymysql", "cloudsql:runmap-140616:us-central1:portals*portals/web/ALL_LOWER_CASE_NO_UNDERSCORES")
     if err != nil {
         panic(err)
-    }   
+    }
+    defer db.Close()    
     if r.Method == "POST" {
         handlePost(w,r,db)
         return
