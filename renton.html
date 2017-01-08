@@ -49,7 +49,7 @@ var mapInitialized=false;
     else window.convexHull = convexHull;
 })();
 
-function saveMapOptions() {
+function saveCookies() {
     // Save current map options so that they'll be retained
     var d = new Date();
     d.setTime(d.getTime() + (7*24*60*60*1000)); // keep it for a week
@@ -60,7 +60,13 @@ function saveMapOptions() {
                         mapTypeId: map.getMapTypeId() };
 
     document.cookie = "mapOptions=" + JSON.stringify(mapOptions) + "; " + expires;   
-}
+    
+    // Save a which glyph is selected
+    document.cookie = "glyph=" + JSON.stringify(document.getElementById("glyph").selectedIndex) + "; " + expires;
+ 
+    // Save max glyph size
+    document.cookie = "maxSize=" + JSON.stringify(document.getElementById("maxSize").value) + "; " + expires;
+ }
 
 function findAdjacent(adjacent, rise, run) {
     var interceptMap = {};
@@ -131,25 +137,35 @@ function CompareArrays(a1, a2) {
     }       
     return 0;
 }
-            
-function renderPortals() {
-    for (var point=0; point<portalCount; point++) {
-        var lat = portal[point][0];
-        var lng = portal[point][1];
-        var mapLat = (lat + .001).toString();
-        var mapLng = (lng - .001).toString();
-        var url = 'https://www.ingress.com/intel?ll=' + mapLat + ',' + mapLng + '&z=17&pll=' + lat + ',' + lng;
+function AddMarker(lat, lng) {
+    var mapLat = (lat + .001).toString();
+    var mapLng = (lng - .001).toString();
+    var url = 'https://www.ingress.com/intel?ll=' + mapLat + ',' + mapLng + '&z=17&pll=' + lat + ',' + lng;
 
-        marker = new google.maps.Marker({
-            map: map,
-            title: url,
-            url: url,                
-            position: new google.maps.LatLng(lat, lng)
-        });
-        google.maps.event.addListener(marker, 'click', function() {
-            saveMapOptions();
-            window.location.href = this.url;
-        });              
+    marker = new google.maps.Marker({
+        map: map,
+        title: url,
+        url: url,                
+        position: new google.maps.LatLng(lat, lng)
+    });
+    google.maps.event.addListener(marker, 'click', function() {
+        saveCookies();
+        window.location.href = this.url;
+    });          
+}              
+function render() {
+    // What glyph are we rendering?
+    var element = document.getElementById("glyph");
+    if (element.selectedIndex == -1)
+        var glyph = "None";
+    else
+        var glyph = element[element.selectedIndex].text;
+
+    if (glyph == "None") {
+        for (var point=0; point<portalCount; point++) {
+            AddMarker(portal[point][0], portal[point][1]);          
+        }
+        return;
     }
 
     //                     A
@@ -171,41 +187,7 @@ function renderPortals() {
     // I = (0,   96) => ( 0, 24)
     // J = (112, 96) => (28, 24)
     // K = (56, 128) => (14, 32)
-    
-    // Concentric convex hulls would be a good start.  ABCIJK are on an outer hull.  DEGH an inner hull.  F is a center point.
-    // Outlying points can be discarded to get the right shape.
-    
-    // Or... maybe it's not convex hulls, maybe it's finding colinear points BDFHJ and CEFGI (each 8.06 units apart)and AFK (each 16 units apart)
-    // sqrt(7^2 + 4^2) = sqrt(65) = sqrt(5*13) = 8.0622577483-ish
-    // It would probably look right if AFK distances were just double the other distances.
-    // Or use squared distances of 65 and 256.  (64 and 256 would be 4 times the squared distance)
-    
-    // a latitude difference of 0.000068 looks pretty level (horizontal line)
-    
-    // Angle of BDFHJ
-    // dx = 7, dy = 4
-    // latitude increases to the north (around here) and longitude increases to the east
-    // so from B to D, we want lat to decrease and lng to increase and we want the lat/long ratio to be 4/7 or the long/lat ratio to be 7/4 = 1.75
-    
-    // How do we find in our point soup, 5 equally spaced points with dlong/dlat = 1.75?
-    // Maybe first find all the points with the right relative slope, partition the set into sets of parallel lines
-    
-    // The grouping would be... y-intercept.  longitude intercept
-    // Given a point, 47.566674,-122.166767
-    // The line through it with decreasing latitude and increasing (to 0) longitude with slope 7/4 intercepts (ignoring reality) long=0 
-    // at lat = 47.566674 - 4*(122.166767/7) = -22.24290714, so we'd group it with other points that have a long intercept of approx -22.2429
-    
-    // Then the whole problem can by solved by grouping the points into 3 grouping schemes.  The BDFHJ angle, the CEFGI angle and by equal longitude (AFK).
-    // Then... find the best F.
-    
-    //var BDFHJ = {};
-    //var CEFGI = {};
-    //var AFK = {}; // vertical
-    //var DE = {}; // horizontal
-    
-    // Need a better data structure
-    // For each of the angles of interest, find adjacency.  Put it in an adgacency graph.
-    
+        
     var adjacency =[]; // for each pair of portals, the slope of the line between them
                        // the slope is expressed as a tuple indicating direction
                        // (up or down) one of the interesting lines
@@ -219,324 +201,237 @@ function renderPortals() {
     }
     
     var sqDist =[]; 
+    var dist = [];
     while (sqDist.push([]) < portalCount);
+    while (dist.push([]) < portalCount);
     for (var p0=0; p0<portalCount; p0++) {
         for (var p1=0; p1<portalCount; p1++) {
             sqDist[p0][p1] = 0;
+            dist[p0][p1] = 0;
         }
     }    
     
-    findAdjacent(adjacency,  4, 7);
-    findAdjacent(adjacency, -4, 7);
-    findAdjacent(adjacency,  1, 0);
-    findAdjacent(adjacency,  0, 1);
-
-
-
-    //linePoints = AFK[list].map(function (item) {
-    //    return new google.maps.LatLng(item[0], item[1]);
-    //});            
-
-    //var polyLine = new google.maps.Polyline({
-    //    path: linePoints,
-    //    strokeColor: '#FF0000',
-    //    strokeOpacity: 1.0,
-    //    strokeWeight: 2,
-    //    map: map
-    //});    
+    findAdjacent(adjacency,   4, 7);
+    findAdjacent(adjacency,  -4, 7);
+    findAdjacent(adjacency,   1, 0);
+    findAdjacent(adjacency,   0, 1);
+    findAdjacent(adjacency,  12, 7);
+    findAdjacent(adjacency, -12, 7);    
  
-    // Find F candidates
-    /*
-    var candidates = 0;
-    for (b in BDFHJ) {
-        if (BDFHJ[b].length >= 5) {
-            for (c in CEFGI) {
-                if (CEFGI[c].length >= 5) {
-                    for (a in AFK) {
-                        if (AFK[a].length >= 3) {
-                            for (bi in BDFHJ[b]) {
-                                for (ci in CEFGI[c]) {
-                                    if (BDFHJ[b][bi][2] == CEFGI[c][ci][2]) {
-                                        for (ai in AFK[a]) {
-                                            if (AFK[a][ai][2] == BDFHJ[b][bi][2]) {
-                                                // Found a candidate!
-                                                var circle = new google.maps.Circle({
-                                                    strokeColor: '#00FF00',
-                                                    strokeOpacity: 0.8,
-                                                    strokeWeight: 2,
-                                                    fillColor: '#FF0000',
-                                                    fillOpacity: 0.35,
-                                                    map: map,
-                                                    center: {lat: AFK[a][ai][0], lng: AFK[a][ai][1]},
-                                                    radius: 40});                                                
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
-    
-    // No F candidates yet, try something simpler
-    // "Truth" is DFHEFGD 
-    //                     A
-    // B                                       C
-    //           D                   E
-    //                     F
-    //           G                   H
-    // I                                       J
-    //                     K    
-
-   
-    // "Truth" is DFHEFGD 
-    //                     A
-    // B                                       C
-    //           D                   E
-    //                     F
-    //           G                   H
-    // I                                       J
-    //                     K    
-    //
-    // Which is down-right, down-right, up, down-left, down-left, up.
-    // For each point, can you go up, down, left, right, up-left, up-right, down-left, down-right?
-    // (later there will be more angles, like B->G and I->D->A, but this is a start)
-    
-    // Strong is simpler: down, right, up, left as a closed curve
-    //for (p in portal) {
-    //    if (AFK[portal[p][5]].length > 1) {
-    //    }
-    //}
-    
-    /*
-    var path = ['down', 'right', 'up', 'left'];
-    var iPath = 0;
-    var stack = [];
-    for (a in AFK) {
-        if (AFK[a].length == 1) continue; 
-        for (ai = 0; ai<AFK[a].length-1; ai++) {
-            for (aj = ai+1; aj<AFK[a].length; aj++) {
-                // ai->aj is a down stroke that's a possible beginning of the glyph
-                stack.push();
-            }
-        }
-        
-    }
-    */
-    
-    
-    
     var up = [1,0];
     var down = [-1,0];
     var right = [0,1];
     var left = [0,-1];
     var downRight47 = [-4,-7];
     var upLeft47 = [4,7];
+    var upRight47 = [-4,7];    
+    var downLeft47 = [4,-7];
+    var downRight12_7 = [-12,-7];
+    var upRight12_7 = [-12,7];
     
     //var path = [[-1,0],[0,1]];  // down, right
-    var path = [down,downRight47]; // barrier: down, down-right
-    var sqPixelDist = [16*16, 14*14 + 8*8];
+    var glyphPath = {
+        'Abandon' : [upLeft47, upRight47], // abandon
+        'Adapt'   : [downRight12_7, upLeft47, downRight47],
+        'Advance' : [upRight12_7],
+        'After'   : [upRight47, down, upLeft47], 
+        'Barrier' : [down,downRight47], // barrier: down, down-right
+        'Path'    : [down,downLeft47],  // path: down, down-left
+        'Gain'    : [downRight12_7],    // gain: down-right from B to G
+        'Clear'   : [down]              // clear: straight line
+    };
+    var glypPixelDist = {
+        'Abandon' : [14*14 + 8*8, 16*16 + 28*28],
+        'Adapt'   : [7*7+12*12, 7*7+4*4, 7*7+4*4],
+        'Advance' : [1],
+        'After'   : [14*14 + 8*8,  16*16, 14*14 + 8*8], 
+        'Barrier' : [16*16, 14*14 + 8*8],
+        'Path'    : [16*16, 14*14 + 8*8],
+        'Gain'    : [1],
+        'Clear'   : [1]
+    };
+    var path = glyphPath[glyph];
+    var sqPixelDist = glypPixelDist[glyph];
+    var pixelDist = [Math.sqrt(sqPixelDist[0]), Math.sqrt(sqPixelDist[1])];
+    var maxSize = document.getElementById("maxSize").value;
+    
+    // Special case for lenth 1 path
+    if (path.length == 1) {
+        var longest = Number.NEGATIVE_INFINITY;
+        for (var p0=0; p0<portalCount; p0++) {
+            for (var p1=0; p1<portalCount; p1++) {
+                if (!CompareArrays(adjacency[p0][p1], path[0])) {
+                    // Make sure there's enough intermediate points
+                    var intermediateCount = 0;
+                    var intermediates = [];
+                    for (var pi=0; pi<portalCount; pi++) {
+                        if (!CompareArrays(adjacency[p0][pi], path[0])
+                            && !CompareArrays(adjacency[pi][p1], path[0])) {
+                            intermediateCount++;
+                            intermediates.push(pi);
+                        }
+                    }
 
-    var stack = [];
-    for (var p0=0; p0<portalCount; p0++) {
-        for (var p1=0; p1<portalCount; p1++) {
-            if (!CompareArrays(adjacency[p0][p1], path[0])) {
-                stack.push([p0,p1]);
+                    if (intermediateCount < 4) {
+                        continue;
+                    }
+                    
+                    // Make sure the points aren't too far apart
+                    var dLat = Math.abs(portal[p0][0] - portal[p1][0]);
+                    var dLng = Math.abs(portal[p0][1] - portal[p1][1]);
+                    if ( dLat > maxSize || dLng > maxSize) {
+                        continue;
+                    }
+                    
+                    var lengthSquared =  dLat*dLat + dLng*dLng;
+                    if (lengthSquared > longest) {
+                        longest = lengthSquared;
+                        var bestPath = [p0,p1];
+                        var bestIntermediates = intermediates.slice();
+                        var bestSize = '(' + dLat.toString() + ', ' + dLng.toString() + ')';
+                    }                    
+                }
             }
         }
     }
-    var minError = Number.MAX_VALUE;
-    while (stack.length) {
-        var partialPath = stack.pop();
-        var partialPathLength = partialPath.length;
-        for (var p=0; p<portalCount; p++) {
-            if (!CompareArrays(adjacency[partialPath[partialPathLength-1]][p], path[partialPathLength-1])) {
-                var extendedPath = partialPath.slice();
-                extendedPath.push(p);
-                if (partialPathLength < path.length) {
-                    stack.push(extendedPath);
+    else {
+        var stack = [];
+        for (var p0=0; p0<portalCount; p0++) {
+            for (var p1=0; p1<portalCount; p1++) {
+                if (!CompareArrays(adjacency[p0][p1], path[0])) {
+                    stack.push([p0,p1]);
                 }
-                else {
-                    // Found full length path with the correct turns
-                    
-                    // Is it long enough?
-                    if (path.length < 5) {
-                        // The glyph itself doesn't have 6 points, are there extra itermediary points?
-                        var intermediates = 0;
-                        for (var epi=0; epi<partialPathLength;epi++) {
-                            for (var pi=0; pi<portalCount; pi++) {
-                                if (!CompareArrays(adjacency[extendedPath[epi]][pi], path[epi])
-                                    && !CompareArrays(adjacency[pi][extendedPath[epi+1]], path[epi])) {
-                                    intermediates++;
+            }
+        }
+        var minError = Number.MAX_VALUE;
+        while (stack.length) {
+            var partialPath = stack.pop();
+            var partialPathLength = partialPath.length;
+            for (var p=0; p<portalCount; p++) {
+                // If the adjacency of the point and the end of the path is the same as the adjacenct we want for the next point...
+                if (!CompareArrays(adjacency[partialPath[partialPathLength-1]][p], path[partialPathLength-1])) {
+                    var extendedPath = partialPath.slice();
+                    extendedPath.push(p);
+                    if (partialPathLength < path.length) {
+                        stack.push(extendedPath);
+                    }
+                    else {
+                        // Found full length path with the correct turns
+                        
+                        // Is it long enough?
+                        if (path.length < 5) {
+                            // The glyph itself doesn't have 6 points, are there extra itermediary points?
+                            var intermediateCount = 0;
+                            var intermediates = [];
+                            for (var epi=0; epi<partialPathLength;epi++) {
+                                for (var pi=0; pi<portalCount; pi++) {
+                                    if (!CompareArrays(adjacency[extendedPath[epi]][pi], path[epi])
+                                        && !CompareArrays(adjacency[pi][extendedPath[epi+1]], path[epi])) {
+                                        intermediateCount++;
+
+                                        intermediates.push(pi);
+                                   
+                                    }
                                 }
                             }
+                            if (path.length + intermediateCount < 5) {
+                                continue;
+                            }
+                            //for (center in intermediateCenters) {
+                            //    var circle = new google.maps.Circle({
+                            //        strokeColor: '#FF0000',
+                            //        strokeOpacity: 0.8,
+                            //        strokeWeight: 2,
+                            //        fillColor: '#FF0000',
+                            //        fillOpacity: 0.35,
+                            //        map: map,
+                            //        center: intermediateCenters[center],
+                            //        radius: 30}); 
+                            //}                                
                         }
-                        if (path.length + intermediates < 5) {
+                        
+                        // Make sure it isn't too big
+                        var minLat = Number.MAX_VALUE;
+                        var minLng = Number.MAX_VALUE;
+                        var maxLat = Number.NEGATIVE_INFINITY;
+                        var maxLng = Number.NEGATIVE_INFINITY;
+                        
+                        for (var ppi=0;ppi<=partialPathLength;ppi++) {
+                            var lat = portal[extendedPath[ppi]][0];
+                            var lng = portal[extendedPath[ppi]][1];
+                            if (lat < minLat) minLat = lat;
+                            if (lat > maxLat) maxLat = lat;
+                            if (lng < minLng) minLng = lng;
+                            if (lng > maxLng) maxLng = lng;
+                        }
+                        if (maxLat - minLat > maxSize || maxLng - minLng > maxSize) {
                             continue;
                         }
-                    }
-                    
-                    // Compare relative segment lengths
-                    
-                    // First, make sure we have all the squared distances calculated
-                    for (var ppi=0;ppi<partialPathLength;ppi++) {
-                        // find the dist between points if it's not in the sqDist cache
-                        if (!sqDist[extendedPath[ppi]][extendedPath[ppi+1]]) {
-                            var dlat = portal[extendedPath[ppi]][0] - portal[extendedPath[ppi+1]][0];
-                            var dlng = portal[extendedPath[ppi]][1] - portal[extendedPath[ppi+1]][1];
-                            sqDist[extendedPath[ppi]][extendedPath[ppi+1]] = dlat*dlat + dlng*dlng;
+                        
+                        // Compare relative segment lengths
+                        
+                        // First, make sure we have all the squared distances calculated
+                        for (var ppi=0;ppi<partialPathLength;ppi++) {
+                            // find the dist between points if it's not in the sqDist cache
+                            if (!sqDist[extendedPath[ppi]][extendedPath[ppi+1]]) {
+                                var dlat = portal[extendedPath[ppi]][0] - portal[extendedPath[ppi+1]][0];
+                                var dlng = portal[extendedPath[ppi]][1] - portal[extendedPath[ppi+1]][1];
+                                sqDist[extendedPath[ppi]][extendedPath[ppi+1]] = dlat*dlat + dlng*dlng;
+                                dist[extendedPath[ppi]][extendedPath[ppi+1]] = Math.sqrt(sqDist[extendedPath[ppi]][extendedPath[ppi+1]]);
+                            }
                         }
-                    }
-                    
-                    // use the first segment's length as the ratio of pixels squared distance to lat,lng squared distance
-                    var ratio = sqDist[partialPath[0]][partialPath[1]] / sqPixelDist[0];
-                    var error = 0;
-                    for (var ppi=1;ppi<partialPathLength;ppi++) {
-                        var delta = (sqPixelDist[ppi] * ratio) - sqDist[extendedPath[ppi]][extendedPath[ppi+1]];
-                        error += delta*delta;
-                    }
-                    if (error < minError) {
-                        minError = error;
-                        var bestPath = extendedPath.slice();
-                    }
-                    var linePoints = extendedPath.map(function (item) {
-                        return new google.maps.LatLng(portal[item][0], portal[item][1]);
-                    });            
+                        
+                        // use the first segment's length as the ratio of pixels squared distance to lat,lng squared distance
+                        var ratio = dist[partialPath[0]][partialPath[1]] / pixelDist[0];
+                        var error = 0;
+                        for (var ppi=1;ppi<partialPathLength;ppi++) {
+                            var delta = Math.abs((pixelDist[ppi] * ratio) - dist[extendedPath[ppi]][extendedPath[ppi+1]]);
+                            error += delta;
+                        }
+                        if (error < minError) {
+                            minError = error;
+                            var bestPath = extendedPath.slice();
+                            var bestIntermediates = intermediates.slice();
+                            var bestSize = '(' + (maxLat-minLat).toString() + ', ' + (maxLng-minLng).toString() + ')';
+                        }
+                        //var linePoints = extendedPath.map(function (item) {
+                        //    return new google.maps.LatLng(portal[item][0], portal[item][1]);
+                        //});            
 
-                    var polyLine = new google.maps.Polyline({
-                        path: linePoints,
-                        strokeColor: '#00FF00',
-                        strokeOpacity: 1.0,
-                        strokeWeight: 20,
-                        map: map
-                    });                    
+                        //var polyLine = new google.maps.Polyline({
+                        //    path: linePoints,
+                        //    strokeColor: '#00FF00',
+                        //    strokeOpacity: 1.0,
+                        //    strokeWeight: 20,
+                        //    map: map
+                        //});                    
+                    }
                 }
             }
         }
     }
-
+    if (!bestPath) return;
+    
     var linePoints = bestPath.map(function (item) {
         return new google.maps.LatLng(portal[item][0], portal[item][1]);
     });            
 
     var polyLine = new google.maps.Polyline({
-        path: linePoints.slice(0,2),
+        path: linePoints,
         strokeColor: '#FF0000',
         strokeOpacity: 1.0,
         strokeWeight: 2,
         map: map
     });
-    var polyLine2 = new google.maps.Polyline({
-        path: linePoints.slice(1),
-        strokeColor: '#0000FF',
-        strokeOpacity: 1.0,
-        strokeWeight: 2,
-        map: map
-    });    
-    
-    
-    /* CONVEX HULLERY
-    var label = 0;
-    var labels = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    
-    while (portalCount > 1) {
-        var pointArray = portal.map(function (item) {
-            var obj = {};
-            obj['x'] = item[0];
-            obj['y'] = item[1];
-            return obj;            
-        }); 
-        var hullPoints = convexHull(pointArray);
-        // the first point in the list is in the bottom right (SE) corner of the hull
-        // points follow in counterclockwise order
-        
-        // Remove these points from the portal set for the next pass of convex hullery
-        for( var i=portalCount - 1; i>=0; i--){
-            for( var j=0; j<hullPoints.length; j++){
-                if(portal[i][0] == hullPoints[j].x && portal[i][1] == hullPoints[j].y){
-                    portal.splice(i, 1);
-                    portalCount--;
-                    j = hullPoints.length;
-                }
-            }
-        }
-        
-        //Convert to google latlng objects
-        hullPoints = hullPoints.map(function (item) {
-            return new google.maps.LatLng(item.x, item.y);
-        });
 
-        
-        var polyHull = new google.maps.Polygon({
-            paths: hullPoints,
-            strokeColor: '#000',
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
-            fillColor: '#000',
-            fillOpacity: 0.1
-        });
-
-        polyHull.setMap(map);   
-        
-        
-        for (var j=0; j<hullPoints.length; j++){
-            var lat = hullPoints[j].lat().toString();
-            var lng = hullPoints[j].lng().toString();
-            var mapLat = (lat + .001).toString();
-            var mapLng = (lng - .001).toString();
-            var url = 'https://www.ingress.com/intel?ll=' + mapLat + ',' + mapLng + '&z=17&pll=' + lat + ',' + lng
-
-            var marker;
-            
-            if (j==0) {
-                var pinColor = "75FE69";
-                var pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=" + labels[label % labels.length] + "|" + pinColor,
-                    new google.maps.Size(21, 34),
-                    new google.maps.Point(0,0),
-                    new google.maps.Point(10, 34));
-                marker = new google.maps.Marker({
-                    map: map,
-                    position: hullPoints[j],
-                    title: url,
-                    url: url,
-                    icon: pinImage
-                });
-            }
-            else if (j==1) {
-                var pinColor = "7569FE";
-                var pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=" + labels[label % labels.length] + "|" + pinColor,
-                    new google.maps.Size(21, 34),
-                    new google.maps.Point(0,0),
-                    new google.maps.Point(10, 34));
-                marker = new google.maps.Marker({
-                    map: map,
-                    position: hullPoints[j],
-                    title: url,
-                    url: url,
-                    icon: pinImage
-                });                
-            }
-            else {
-            
-                marker = new google.maps.Marker({
-                    map: map,
-                    position: hullPoints[j],
-                    label: labels[label % labels.length],
-                    title: url,
-                    url: url
-                });
-            }
-            google.maps.event.addListener(marker, 'click', function() {
-                window.location.href = this.url;
-            });                
-        }
-        label++;  
-    }
-    */
+    for (p in bestPath) {
+        AddMarker(portal[bestPath[p]][0], portal[bestPath[p]][1]);  
+    }    
+    for (p in bestIntermediates) {
+        AddMarker(portal[bestIntermediates[p]][0], portal[bestIntermediates[p]][1]);      
+    }        
+    
+    document.getElementById('status').innerHTML = bestSize;
 }
 
 function initializeMap() 
@@ -548,14 +443,21 @@ function initializeMap()
                             zoom: 10,
                             mapTypeId: google.maps.MapTypeId.ROADMAP };
         
-        // Load the map options cookie if there is one
-        var name = "mapOptions=";
+        // Load cookies
+        var mapOptionsKey = "mapOptions=";
+        var glyphKey = "glyph=";
+        var maxSizeKey = "maxSize=";
         var ca = document.cookie.split(';');
         for(var i = 0; i <ca.length; i++) {
             var c = ca[i].trim();
-            if (c.indexOf(name) == 0) {
-                mapOptions = JSON.parse(c.substring(name.length));
-                break;
+            if (c.indexOf(mapOptionsKey) == 0) {
+                mapOptions = JSON.parse(c.substring(mapOptionsKey.length));
+            }
+            if (c.indexOf(glyphKey) == 0) {
+                document.getElementById("glyph").selectedIndex = JSON.parse(c.substring(glyphKey.length));
+            }
+            if (c.indexOf(maxSizeKey) == 0) {
+                document.getElementById("maxSize").value = JSON.parse(c.substring(maxSizeKey.length))
             }
         }        
         
@@ -575,7 +477,7 @@ function initializeMap()
                     for (var p=0; p<portalCount;p++) {
                         portal[p].push(p); // the index will be handy for comparing elements
                     }
-                    renderPortals();
+                    render();
                 }
             }
         };
@@ -656,7 +558,7 @@ function handleSaveRequest()
             //window.location.href += "?foo=bar"; //to pass in parameter(s) of the current viewport
         
             // Save current map options so that they'll be retained
-            saveMapOptions();
+            saveCookies();
          
             window.location.reload(true);
         }
@@ -770,10 +672,18 @@ function add() {
                     }
                 }
             }
-            document.getElementById('status').innerHTML = 'Not in renton'; 
+            document.getElementById('status').innerHTML = 'Not in Renton'; 
         }
     };
     addRequest.send();  
+}
+function changeGlyph() {
+
+    // Save state
+    saveCookies();
+    
+    // Reload the page
+    window.location.reload(true);
 }
 </script>
 </head>
@@ -783,7 +693,142 @@ function add() {
 src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjVqY8VnMU&callback=initializeMap" async defer>
 </script>
 <div id="header" style="width:100%; height:10%;overflow:auto;">
-<input type="text" id="portalEntry" /> <span id=addPortal><button onclick="add()">Add</button></span><br/>
+<input type="text" id="portalEntry" /> <span id=addPortal><button onclick="add()">Add</button></span>
+<select id="glyph" size="2" onchange="changeGlyph();">
+    <option>None</option>
+    <option>Abandon</option>
+    <option>Adapt</option>   
+    <option>Advance</option>   
+    <option>After</option>   
+    <option>Again</option>   
+    <option>All</option>   
+    <option>Answer</option>   
+    <option>Attack</option>   
+    <option>Avoid</option>       
+    <option>Barrier</option>
+    <option>Before</option>   
+    <option>Begin</option>   
+    <option>Human</option>   
+    <option>Body</option>   
+    <option>Breathe</option>   
+    <option>Capture</option>   
+    <option>Change</option>   
+    <option>Chaos</option>    
+    <option>Clear</option>     
+    <option>Clear All</option>   
+    <option>Complex</option>   
+    <option>Conflict</option>   
+    <option>Consquence</option>   
+    <option>Contemplate</option>   
+    <option>Reduce</option>   
+    <option>Courage</option>   
+    <option>Create</option>    
+    <option>Creativity</option>   
+    <option>Thought</option>   
+    <option>Danger</option>   
+    <option>Data</option>   
+    <option>Defend</option>   
+    <option>Destiny</option>   
+    <option>Destroy</option>   
+    <option>Deteriorate</option>        
+    <option>Die</option>   
+    <option>Difficult</option>   
+    <option>Discover</option>   
+    <option>Outside</option>   
+    <option>Easy</option>   
+    <option>End</option>   
+    <option>Enlightenment</option>   
+    <option>Equal</option>    
+    <option>Escape</option>   
+    <option>Evolution</option>   
+    <option>Failure</option>   
+    <option>Fear</option>   
+    <option>Follow</option>   
+    <option>Forget</option>   
+    <option>Future</option>      
+    <option>Gain</option>    
+    <option>Civilization</option>   
+    <option>Grow</option>   
+    <option>Harm</option>   
+    <option>Harmony</option>   
+    <option>Have</option>   
+    <option>Help</option>   
+    <option>Hide</option>   
+    <option>Self</option>    
+    <option>Ignore</option>   
+    <option>Imperfect</option>   
+    <option>Improve</option>   
+    <option>Impure</option>   
+    <option>Intellogence</option>   
+    <option>Interrupt</option>   
+    <option>Journey</option>   
+    <option>Knowledge</option>    
+    <option>Lead</option>   
+    <option>Legacy</option>   
+    <option>Less</option>   
+    <option>Liberate</option>   
+    <option>Lie</option>   
+    <option>Live Again</option>   
+    <option>Lose</option>   
+    <option>Message</option>    
+    <option>Mind</option>   
+    <option>More</option>   
+    <option>Mystery</option>   
+    <option>N'zeer</option>   
+    <option>Nature</option>   
+    <option>New</option>   
+    <option>Inside</option>   
+    <option>Nourish</option>    
+    <option>Old</option>   
+    <option>Open</option>   
+    <option>Open All</option>   
+    <option>Portal</option>   
+    <option>Past</option>    
+    <option>Path</option>     
+    <option>Perfection</option>   
+    <option>Perspective</option>   
+    <option>Potential</option>   
+    <option>Presence</option>   
+    <option>Now</option>   
+    <option>Pire</option>   
+    <option>Pursue</option>   
+    <option>Chase</option>    
+    <option>Question</option>   
+    <option>React</option>   
+    <option>Rebel</option>   
+    <option>Recharge</option>   
+    <option>Resistance</option>   
+    <option>Restraint</option>   
+    <option>Retreat</option>   
+    <option>Safety</option>    
+    <option>Save</option>   
+    <option>See</option>   
+    <option>Search</option>   
+    <option>Self</option>   
+    <option>Seperate</option>   
+    <option>Shaper</option>   
+    <option>Share</option>   
+    <option>Simple</option>    
+    <option>Soul</option>   
+    <option>Stability</option>   
+    <option>Strong</option>   
+    <option>Sustain</option>   
+    <option>Sustain All</option>   
+    <option>Technology</option>   
+    <option>Together</option>   
+    <option>Truth</option>    
+    <option>Unbounded</option>   
+    <option>Use</option>   
+    <option>Victory</option>   
+    <option>Want</option>   
+    <option>We</option>  
+    <option>Weak</option>  
+    <option>Worth</option>  
+    <option>XM</option>  
+    <option>You</option>  
+</select>
+Max size: <input id="maxSize" type="number" min="0" max="10" value="10" step="0.001" onchange="changeGlyph();">
+<br/>
 <span id=status> </span><br/>
 <span id=saveButton><button onclick="save()">Save</button></span><br/>
 </div>
