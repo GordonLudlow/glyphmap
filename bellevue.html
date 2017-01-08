@@ -466,7 +466,7 @@ function initializeMap()
 
         // Load the portal coordinates
         var portalRequest=new XMLHttpRequest();
-        portalRequest.open("GET",'http://runmap-140616.appspot.com/');
+        portalRequest.open("GET",'http://runmap-140616.appspot.com/?city=Bellevue');
         portalRequest.onreadystatechange = onreadystatechange = function() {
             if (this.readyState == 4) // complete 
             {
@@ -573,7 +573,7 @@ function save() {
     }
     document.getElementById('status').innerHTML = 'Saving...'; 
     
-    var data = '[';
+    var data = '"Bellevue", [';
     var leadingComma = '';
     for (var p=0; p < newPortals.length; p++) {
         data += leadingComma + '[' + String(newPortals[p][0]) + ',' + String(newPortals[p][1]) + ']';

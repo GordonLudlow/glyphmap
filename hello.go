@@ -2,15 +2,14 @@ package hello
 
 import (
     "fmt"
-    //"io"   
+    "net"
+    "net/url" 
     "net/http"
-    //"os"
     "encoding/json"
-    
+
     "google.golang.org/appengine"
     "google.golang.org/appengine/log"
     
-    //"google.golang.org/appengine/cloudsql"    
     "database/sql"
     _ "github.com/ziutek/mymysql/godrv"
 )
@@ -26,18 +25,23 @@ type coordinateList [][]float64
 func handlePost(w http.ResponseWriter, r *http.Request, db *sql.DB) {
     ctx := appengine.NewContext(r)
     decoder := json.NewDecoder(r.Body)
+    var city string
     var coords coordinateList   
+    err := decoder.Decode(&city)
+    if err != nil {
+        panic(err)
+    }
     err := decoder.Decode(&coords)
     if err != nil {
         panic(err)
     }
-    insert, err := db.Prepare("INSERT INTO portals (lat,lng) VALUES (?, ?)") 
+    insert, err := db.Prepare("INSERT INTO portals (lat,lng,city) VALUES (?, ?,?)") 
     if err != nil {
         panic(err)
     }
     var insertCount = 0
     for i := range coords {
-        _, err = insert.Exec(coords[i][0], coords[i][1])
+        _, err = insert.Exec(coords[i][0], coords[i][1], city)
         if err == nil {
             insertCount++
         } else {
@@ -58,9 +62,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
         handlePost(w,r,db)
         return
     }
+
+    var city string
+    m, _ := url.ParseQuery(r.URL.RawQuery)
+    city = m["city"][0]
     
     ctx := appengine.NewContext(r)
-    rows, err := db.Query("SELECT lat, lng FROM portals")
+    rows, err := db.Query("SELECT lat, lng FROM portals WHERE city = '%s'", city)
     if err != nil {
         log.Errorf(ctx, "db.Query: %v", err)
         panic(err)
