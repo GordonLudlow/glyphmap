@@ -67,7 +67,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
     city = m["city"][0]
     
     ctx := appengine.NewContext(r)
-    rows, err := db.Query("SELECT lat, lng FROM portals WHERE city = '%s'", city)
+    select := fmt.Sprintf("SELECT lat, lng FROM portals WHERE city = '%s'", city)
+    rows, err := db.Query(select)
     if err != nil {
         log.Errorf(ctx, "db.Query: %v", err)
         panic(err)
