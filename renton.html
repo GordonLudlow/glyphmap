@@ -665,7 +665,7 @@ function add() {
             for (var r = 0; r<resultCount; r++) {
                 var componentCount = result.results[r].address_components.length;
                 for (var c =0; c<componentCount; c++) {
-                    if (result.results[r].address_components[c].short_name == 'Renton') {
+                    if (result.results[r].address_components[c].short_name.includes('Renton')) {
                         addPortal(latLng);
 
                         document.getElementById('status').innerHTML = 'Portal added'; 
