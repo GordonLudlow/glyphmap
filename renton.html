@@ -659,6 +659,8 @@ function add() {
                 document.getElementById('status').innerHTML = result.status; 
                 return;
             }
+            var cities = new Set();
+
             var resultCount = result.results.length;
             for (var r = 0; r<resultCount; r++) {
                 var componentCount = result.results[r].address_components.length;
@@ -670,9 +672,17 @@ function add() {
                         document.getElementById('portalEntry').value = '';
                         return;
                     }
+                    else {
+                        cities.add(result.results[r].address_components[c].short_name);
+                    }
                 }
             }
-            document.getElementById('status').innerHTML = 'Not in Renton'; 
+            document.getElementById('status').innerHTML = 'Not in Renton: '; 
+            var leadingComma = '';
+            for (let city of cities) {
+                document.getElementById('status').innerHTML += leadingComma + city;
+                leadingComma = ', ';
+            }
         }
     };
     addRequest.send();  
