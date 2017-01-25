@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Seattle Portals</title>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<style type="text/css">
+html { height: 100% }
+body { height: 100%; margin: 0; padding: 0 }
+</style>
+
+<script type="text/javascript">
+var portal;
+var portalCount;
+var mapInitialized=false;
+
+// https://github.com/indy256/convexhull-js/blob/master/convexhull.js
+(function () {
+    'use strict';
+
+    function convexHull(points) {
+        points.sort(function (a, b) {
+            return a.x != b.x ? a.x - b.x : a.y - b.y;
+        });
+
+        var n = points.length;
+        var hull = [];
+
+        for (var i = 0; i < 2 * n; i++) {
+            var j = i < n ? i : 2 * n - 1 - i;
+            while (hull.length >= 2 && removeMiddle(hull[hull.length - 2], hull[hull.length - 1], points[j]))
+                hull.pop();
+            hull.push(points[j]);
+        }
+
+        hull.pop();
+        return hull;
+    }
+
+    function removeMiddle(a, b, c) {
+        var cross = (a.x - b.x) * (c.y - b.y) - (a.y - b.y) * (c.x - b.x);
+        var dot = (a.x - b.x) * (c.x - b.x) + (a.y - b.y) * (c.y - b.y);
+        return cross < 0 || cross == 0 && dot <= 0;
+    }
+
+    // export as AMD module / Node module / browser or worker variable
+    if (typeof define === 'function' && define.amd) define(function () { return convexHull; });
+    else if (typeof module !== 'undefined') module.exports = convexHull;
+    else if (typeof self !== 'undefined') self.convexHull = convexHull;
+    else window.convexHull = convexHull;
+})();
+
+function saveCookies() {
+    // Save current map options so that they'll be retained
+    var d = new Date();
+    d.setTime(d.getTime() + (7*24*60*60*1000)); // keep it for a week
+    var expires = "expires="+d.toUTCString();
+
+    var mapOptions = {  center: map.getCenter(),
+                        zoom: map.getZoom(),
+                        mapTypeId: map.getMapTypeId() };
+
+    document.cookie = "mapOptions=" + JSON.stringify(mapOptions) + "; " + expires;   
+    
+    // Save a which glyph is selected
+    document.cookie = "glyph=" + JSON.stringify(document.getElementById("glyph").selectedIndex) + "; " + expires;
+ 
+    // Save max glyph size
+    document.cookie = "maxSize=" + JSON.stringify(document.getElementById("maxSize").value) + "; " + expires;
+ }
+
+function findAdjacent(adjacent, rise, run) {
+    var interceptMap = {};
+    for (var p=0; p < portalCount; p++) {
+        if (rise==0) {
+            var intercept = (portal[p][0]).toFixed(4);
+        }
+        else if (run==0) {
+            var intercept = (portal[p][1]).toFixed(4);
+        }
+        else {
+            var intercept = (portal[p][0] + (rise*portal[p][1]/run)).toFixed(4);
+        }
+        if (intercept in interceptMap) {
+            interceptMap[intercept].push(p);
+        }
+        else {
+            interceptMap[intercept] = [p];
+        }        
+    } 
+    if (rise==0) {
+        var compare = function(a, b) { return portal[a][1] - portal[b][1]; };
+    }
+    else {
+        var compare = function(a, b) { return portal[a][0] - portal[b][0]; };
+    }    
+    for (var list in interceptMap) {
+        if (interceptMap[list].length > 1) {
+            interceptMap[list].sort(compare); 
+            for (var i=0; i<interceptMap[list].length-1; i++) {
+                var p0 = interceptMap[list][i];
+                for (var j=i+1; j<interceptMap[list].length; j++) {
+                    var p1 = interceptMap[list][j];
+                    adjacent[p0][p1] = [rise,run];
+                    adjacent[p1][p0] = [-rise,-run];
+                }
+            }
+        }
+    }
+}
+
+function CompareArrays(a1, a2) {
+    if (a1 && !a2)
+        return 1;
+    if (!a1 && a2)
+        return -1;
+    if (!a1 && !a2)
+        return 0;
+        
+    // compare lengths - can save a lot of time 
+    var lengthDiff = a1.length - a2.length; 
+    if (lengthDiff)
+        return lengthDiff;
+
+    for (var i = 0, l=a1.length; i < l; i++) {
+        // Check if we have nested arrays
+        if (a1[i] instanceof Array && a2[i] instanceof Array) {
+            // recurse into the nested arrays
+            var diff = CompareArrays(a1[i], a2[i]);
+            if (diff)
+                return diff;       
+        }           
+        else {
+            var diff = a1[i] - a2[i];
+            if (diff)
+                return diff;
+        }           
+    }       
+    return 0;
+}
+function AddMarker(lat, lng) {
+    var mapLat = (lat + .001).toString();
+    var mapLng = (lng - .001).toString();
+    var url = 'https://www.ingress.com/intel?ll=' + mapLat + ',' + mapLng + '&z=17&pll=' + lat + ',' + lng;
+
+    marker = new google.maps.Marker({
+        map: map,
+        title: url,
+        url: url,                
+        position: new google.maps.LatLng(lat, lng)
+    });
+    google.maps.event.addListener(marker, 'click', function() {
+        saveCookies();
+        window.location.href = this.url;
+    });          
+}              
+function render() {
+    // What glyph are we rendering?
+    var element = document.getElementById("glyph");
+    if (element.selectedIndex == -1)
+        var glyph = "None";
+    else
+        var glyph = element[element.selectedIndex].text;
+
+    if (glyph == "None") {
+        for (var point=0; point<portalCount; point++) {
+            AddMarker(portal[point][0], portal[point][1]);          
+        }
+        return;
+    }
+
+    //                     A
+    // B                                       C
+    //           D                   E
+    //                     F
+    //           G                   H
+    // I                                       J
+    //                     K
+    //
+    // A = (56,   0) => (14,  0)
+    // B = (0,   32) => ( 0,  8)
+    // C = (112, 32) => (28,  8)
+    // D = (28,  48) => ( 7, 12)
+    // E = (84,  48) => (21, 12)
+    // F = (56,  64) => (14, 16)
+    // G = (28,  80) => ( 7, 20)
+    // H = (84,  80) => (21, 20)
+    // I = (0,   96) => ( 0, 24)
+    // J = (112, 96) => (28, 24)
+    // K = (56, 128) => (14, 32)
+        
+    var adjacency =[]; // for each pair of portals, the slope of the line between them
+                       // the slope is expressed as a tuple indicating direction
+                       // (up or down) one of the interesting lines
+                       // If the pair of points is along BDFHJ, B's adjacency to D is 4,7.
+                       // D's adjacency to B is -4,-7 (same slope, opposite direction)
+    while (adjacency.push([]) < portalCount);
+    for (var p0=0; p0<portalCount; p0++) {
+        for (var p1=0; p1<portalCount; p1++) {
+            adjacency[p0][p1] = [0,0];
+        }
+    }
+    
+    var sqDist =[]; 
+    var dist = [];
+    while (sqDist.push([]) < portalCount);
+    while (dist.push([]) < portalCount);
+    for (var p0=0; p0<portalCount; p0++) {
+        for (var p1=0; p1<portalCount; p1++) {
+            sqDist[p0][p1] = 0;
+            dist[p0][p1] = 0;
+        }
+    }    
+    
+    findAdjacent(adjacency,   4, 7);
+    findAdjacent(adjacency,  -4, 7);
+    findAdjacent(adjacency,   1, 0);
+    findAdjacent(adjacency,   0, 1);
+    findAdjacent(adjacency,  12, 7);
+    findAdjacent(adjacency, -12, 7);    
+ 
+    var up = [1,0];
+    var down = [-1,0];
+    var right = [0,1];
+    var left = [0,-1];
+    var downRight47 = [-4,-7];
+    var upLeft47 = [4,7];
+    var upRight47 = [-4,7];    
+    var downLeft47 = [4,-7];
+    var downRight12_7 = [-12,-7];
+    var upRight12_7 = [-12,7];
+    
+    //var path = [[-1,0],[0,1]];  // down, right
+    var glyphPath = {
+        'Abandon' : [upLeft47, upRight47], // abandon
+        'Adapt'   : [downRight12_7, upLeft47, downRight47],
+        'Advance' : [upRight12_7],
+        'After'   : [upRight47, down, upLeft47], 
+        'Barrier' : [down,downRight47], // barrier: down, down-right
+        'Path'    : [down,downLeft47],  // path: down, down-left
+        'Gain'    : [downRight12_7],    // gain: down-right from B to G
+        'Clear'   : [down]              // clear: straight line
+    };
+    var glypPixelDist = {
+        'Abandon' : [14*14 + 8*8, 16*16 + 28*28],
+        'Adapt'   : [7*7+12*12, 7*7+4*4, 7*7+4*4],
+        'Advance' : [1],
+        'After'   : [14*14 + 8*8,  16*16, 14*14 + 8*8], 
+        'Barrier' : [16*16, 14*14 + 8*8],
+        'Path'    : [16*16, 14*14 + 8*8],
+        'Gain'    : [1],
+        'Clear'   : [1]
+    };
+    var path = glyphPath[glyph];
+    var sqPixelDist = glypPixelDist[glyph];
+    var pixelDist = [Math.sqrt(sqPixelDist[0]), Math.sqrt(sqPixelDist[1])];
+    var maxSize = document.getElementById("maxSize").value;
+    
+    // Special case for lenth 1 path
+    if (path.length == 1) {
+        var longest = Number.NEGATIVE_INFINITY;
+        for (var p0=0; p0<portalCount; p0++) {
+            for (var p1=0; p1<portalCount; p1++) {
+                if (!CompareArrays(adjacency[p0][p1], path[0])) {
+                    // Make sure there's enough intermediate points
+                    var intermediateCount = 0;
+                    var intermediates = [];
+                    for (var pi=0; pi<portalCount; pi++) {
+                        if (!CompareArrays(adjacency[p0][pi], path[0])
+                            && !CompareArrays(adjacency[pi][p1], path[0])) {
+                            intermediateCount++;
+                            intermediates.push(pi);
+                        }
+                    }
+
+                    if (intermediateCount < 4) {
+                        continue;
+                    }
+                    
+                    // Make sure the points aren't too far apart
+                    var dLat = Math.abs(portal[p0][0] - portal[p1][0]);
+                    var dLng = Math.abs(portal[p0][1] - portal[p1][1]);
+                    if ( dLat > maxSize || dLng > maxSize) {
+                        continue;
+                    }
+                    
+                    var lengthSquared =  dLat*dLat + dLng*dLng;
+                    if (lengthSquared > longest) {
+                        longest = lengthSquared;
+                        var bestPath = [p0,p1];
+                        var bestIntermediates = intermediates.slice();
+                        var bestSize = '(' + dLat.toString() + ', ' + dLng.toString() + ')';
+                    }                    
+                }
+            }
+        }
+    }
+    else {
+        var stack = [];
+        for (var p0=0; p0<portalCount; p0++) {
+            for (var p1=0; p1<portalCount; p1++) {
+                if (!CompareArrays(adjacency[p0][p1], path[0])) {
+                    stack.push([p0,p1]);
+                }
+            }
+        }
+        var minError = Number.MAX_VALUE;
+        while (stack.length) {
+            var partialPath = stack.pop();
+            var partialPathLength = partialPath.length;
+            for (var p=0; p<portalCount; p++) {
+                // If the adjacency of the point and the end of the path is the same as the adjacenct we want for the next point...
+                if (!CompareArrays(adjacency[partialPath[partialPathLength-1]][p], path[partialPathLength-1])) {
+                    var extendedPath = partialPath.slice();
+                    extendedPath.push(p);
+                    if (partialPathLength < path.length) {
+                        stack.push(extendedPath);
+                    }
+                    else {
+                        // Found full length path with the correct turns
+                        
+                        // Is it long enough?
+                        if (path.length < 5) {
+                            // The glyph itself doesn't have 6 points, are there extra itermediary points?
+                            var intermediateCount = 0;
+                            var intermediates = [];
+                            for (var epi=0; epi<partialPathLength;epi++) {
+                                for (var pi=0; pi<portalCount; pi++) {
+                                    if (!CompareArrays(adjacency[extendedPath[epi]][pi], path[epi])
+                                        && !CompareArrays(adjacency[pi][extendedPath[epi+1]], path[epi])) {
+                                        intermediateCount++;
+
+                                        intermediates.push(pi);
+                                   
+                                    }
+                                }
+                            }
+                            if (path.length + intermediateCount < 5) {
+                                continue;
+                            }
+                            //for (center in intermediateCenters) {
+                            //    var circle = new google.maps.Circle({
+                            //        strokeColor: '#FF0000',
+                            //        strokeOpacity: 0.8,
+                            //        strokeWeight: 2,
+                            //        fillColor: '#FF0000',
+                            //        fillOpacity: 0.35,
+                            //        map: map,
+                            //        center: intermediateCenters[center],
+                            //        radius: 30}); 
+                            //}                                
+                        }
+                        
+                        // Make sure it isn't too big
+                        var minLat = Number.MAX_VALUE;
+                        var minLng = Number.MAX_VALUE;
+                        var maxLat = Number.NEGATIVE_INFINITY;
+                        var maxLng = Number.NEGATIVE_INFINITY;
+                        
+                        for (var ppi=0;ppi<=partialPathLength;ppi++) {
+                            var lat = portal[extendedPath[ppi]][0];
+                            var lng = portal[extendedPath[ppi]][1];
+                            if (lat < minLat) minLat = lat;
+                            if (lat > maxLat) maxLat = lat;
+                            if (lng < minLng) minLng = lng;
+                            if (lng > maxLng) maxLng = lng;
+                        }
+                        if (maxLat - minLat > maxSize || maxLng - minLng > maxSize) {
+                            continue;
+                        }
+                        
+                        // Compare relative segment lengths
+                        
+                        // First, make sure we have all the squared distances calculated
+                        for (var ppi=0;ppi<partialPathLength;ppi++) {
+                            // find the dist between points if it's not in the sqDist cache
+                            if (!sqDist[extendedPath[ppi]][extendedPath[ppi+1]]) {
+                                var dlat = portal[extendedPath[ppi]][0] - portal[extendedPath[ppi+1]][0];
+                                var dlng = portal[extendedPath[ppi]][1] - portal[extendedPath[ppi+1]][1];
+                                sqDist[extendedPath[ppi]][extendedPath[ppi+1]] = dlat*dlat + dlng*dlng;
+                                dist[extendedPath[ppi]][extendedPath[ppi+1]] = Math.sqrt(sqDist[extendedPath[ppi]][extendedPath[ppi+1]]);
+                            }
+                        }
+                        
+                        // use the first segment's length as the ratio of pixels squared distance to lat,lng squared distance
+                        var ratio = dist[partialPath[0]][partialPath[1]] / pixelDist[0];
+                        var error = 0;
+                        for (var ppi=1;ppi<partialPathLength;ppi++) {
+                            var delta = Math.abs((pixelDist[ppi] * ratio) - dist[extendedPath[ppi]][extendedPath[ppi+1]]);
+                            error += delta;
+                        }
+                        if (error < minError) {
+                            minError = error;
+                            var bestPath = extendedPath.slice();
+                            var bestIntermediates = intermediates.slice();
+                            var bestSize = '(' + (maxLat-minLat).toString() + ', ' + (maxLng-minLng).toString() + ')';
+                        }
+                        //var linePoints = extendedPath.map(function (item) {
+                        //    return new google.maps.LatLng(portal[item][0], portal[item][1]);
+                        //});            
+
+                        //var polyLine = new google.maps.Polyline({
+                        //    path: linePoints,
+                        //    strokeColor: '#00FF00',
+                        //    strokeOpacity: 1.0,
+                        //    strokeWeight: 20,
+                        //    map: map
+                        //});                    
+                    }
+                }
+            }
+        }
+    }
+    if (!bestPath) return;
+    
+    var linePoints = bestPath.map(function (item) {
+        return new google.maps.LatLng(portal[item][0], portal[item][1]);
+    });            
+
+    var polyLine = new google.maps.Polyline({
+        path: linePoints,
+        strokeColor: '#FF0000',
+        strokeOpacity: 1.0,
+        strokeWeight: 2,
+        map: map
+    });
+
+    for (p in bestPath) {
+        AddMarker(portal[bestPath[p]][0], portal[bestPath[p]][1]);  
+    }    
+    for (p in bestIntermediates) {
+        AddMarker(portal[bestIntermediates[p]][0], portal[bestIntermediates[p]][1]);      
+    }        
+    
+    document.getElementById('status').innerHTML = bestSize;
+}
+
+function initializeMap() 
+{
+    if (!mapInitialized)
+    {
+        // Default map options
+        var mapOptions = { center: new google.maps.LatLng(47.65, -122.10),
+                            zoom: 10,
+                            mapTypeId: google.maps.MapTypeId.ROADMAP };
+        
+        // Load cookies
+        var mapOptionsKey = "mapOptions=";
+        var glyphKey = "glyph=";
+        var maxSizeKey = "maxSize=";
+        var ca = document.cookie.split(';');
+        for(var i = 0; i <ca.length; i++) {
+            var c = ca[i].trim();
+            if (c.indexOf(mapOptionsKey) == 0) {
+                mapOptions = JSON.parse(c.substring(mapOptionsKey.length));
+            }
+            if (c.indexOf(glyphKey) == 0) {
+                document.getElementById("glyph").selectedIndex = JSON.parse(c.substring(glyphKey.length));
+            }
+            if (c.indexOf(maxSizeKey) == 0) {
+                document.getElementById("maxSize").value = JSON.parse(c.substring(maxSizeKey.length))
+            }
+        }        
+        
+        map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+        mapInitialized=true;
+
+        // Load the portal coordinates
+        var portalRequest=new XMLHttpRequest();
+        portalRequest.open("GET",'http://runmap-140616.appspot.com/?city=Seattle');
+        portalRequest.onreadystatechange = onreadystatechange = function() {
+            if (this.readyState == 4) // complete 
+            {
+                if (this.status == 200) // OK
+                {
+                    portal = JSON.parse('[' + this.responseText + ']');
+                    portalCount = portal.length;
+                    for (var p=0; p<portalCount;p++) {
+                        portal[p].push(p); // the index will be handy for comparing elements
+                    }
+                    render();
+                }
+            }
+        };
+        portalRequest.send();
+        
+        /*
+        for (var i = 0; i < portalCount; i++) {
+            var circle = new google.maps.Circle({
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#FF0000',
+                fillOpacity: 0.35,
+                map: map,
+                center: {lat: portal[i][0], lng: portal[i][1]},
+                radius: 40
+            });
+        }
+        */
+        
+        /*
+        // Find a rectangle (just as a test of using lat/long instead of projecting)
+        var closest = 1000;
+        var rectangle = [0,1,2,3];
+        for (var i=0; i<portalCount;i++){
+            for (var j=0; j<portalCount;j++){
+                if (j==i) continue;
+                for (var k=0;k<portalCount;k++){
+                    if (k==i || k==j) continue;
+                    for (var l=0;l<portalCount;l++){
+                        if (l==i || l==j || l==k) continue;
+                        // we want the closest i.x == j.x, k.x == l.x, i.y == k.y, j.y == l.y
+                        // for rect i, j, l, k(, i)
+                        var maxError = Math.max(
+                            Math.abs(portal[i][0] - portal[j][0]),
+                            Math.abs(portal[k][0] - portal[l][0]),
+                            Math.abs(portal[i][1] - portal[k][1]),
+                            Math.abs(portal[j][1] - portal[l][1]));
+                        if (maxError < closest) {
+                            closest = maxError;
+                            rectangle = [i,j,k,l];
+                        }
+                        
+                    }
+                }
+            }
+        }
+
+        // Draw the rectangle
+        var polyline = new google.maps.Polyline({
+                path: [
+                {lat: portal[rectangle[0]][0], lng: portal[rectangle[0]][1]},
+                {lat: portal[rectangle[1]][0], lng: portal[rectangle[1]][1]},
+                {lat: portal[rectangle[3]][0], lng: portal[rectangle[3]][1]},
+                {lat: portal[rectangle[2]][0], lng: portal[rectangle[2]][1]},
+                {lat: portal[rectangle[0]][0], lng: portal[rectangle[0]][1]}
+                ],
+                strokeColor: "#FF00FF",
+                strokeOpacity: 1.0,
+                strokeWeight: 2,
+                map: map});
+ 
+        */
+
+        // What I want is...
+
+    } 
+}
+var saveRequest;
+function handleSaveRequest()
+{
+    console.log("readyState = " + String(saveRequest.readyState) + ", status = " + String(saveRequest.status));
+    if (saveRequest.readyState == 4) // complete 
+    {
+        if (saveRequest.status == 200) // OK
+        {
+            // Success!
+            //window.location.href += "?foo=bar"; //to pass in parameter(s) of the current viewport
+        
+            // Save current map options so that they'll be retained
+            saveCookies();
+         
+            window.location.reload(true);
+        }
+    }
+}
+var newPortals = [];
+
+function save() {   
+    if (!newPortals.length) {
+        document.getElementById('status').innerHTML = 'Nothing to save.  Add some portals.'; 
+        return;
+    }
+    document.getElementById('status').innerHTML = 'Saving...'; 
+    
+    var data = '"Seattle" [';
+    var leadingComma = '';
+    for (var p=0; p < newPortals.length; p++) {
+        data += leadingComma + '[' + String(newPortals[p][0]) + ',' + String(newPortals[p][1]) + ']';
+        leadingComma = ',';
+    }
+    data += ']';    
+
+    saveRequest=new XMLHttpRequest();
+    saveRequest.open('POST', 'http://runmap-140616.appspot.com/');
+    saveRequest.setRequestHeader('Content-Type', 'application/json');
+    //saveRequest.setRequestHeader('Content-Length', data.length);
+    saveRequest.onreadystatechange = handleSaveRequest;
+    saveRequest.send(data);
+}
+//,
+//[47.631679,-122.208507]
+
+function addPortal(latLng) {
+    newPortals.push(latLng);
+
+    var pinColor = "75FE69";
+    var pinImage = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=o|" + pinColor,
+        new google.maps.Size(21, 34),
+        new google.maps.Point(0,0),
+        new google.maps.Point(10, 34));
+    marker = new google.maps.Marker({
+        map: map,
+        position: new google.maps.LatLng(latLng[0], latLng[1]),
+        icon: pinImage
+    });
+}
+
+function add() {
+    var enteredPortal = document.getElementById('portalEntry').value;
+    if (!enteredPortal) {
+        document.getElementById('status').innerHTML = 'Enter portal lat,lng to add'; 
+        return;
+    }
+    // Allow entire intel map link to be pasted in
+    //https://www.ingress.com/intel?ll=47.570585,-122.149027&z=17&pll=47.570508,-122.150159
+    var pllIndex = enteredPortal.indexOf('pll=');
+    if (pllIndex >= 0) {
+        enteredPortal = enteredPortal.substring(pllIndex+4)
+    }
+    var latLng = enteredPortal.split(',');
+    if (latLng.length != 2) {
+        document.getElementById('status').innerHTML = 'Invalid portal lat,lng'; 
+        return;
+    }
+    latLng[0] = parseFloat(latLng[0])
+    latLng[1] = parseFloat(latLng[1])
+    if (isNaN(latLng[0]) || isNaN(latLng[1])) {
+        document.getElementById('status').innerHTML = 'Invalid portal lat,lng'; 
+        return;
+    }
+    for (var p=0; p < portalCount; p++) {
+        if ((portal[p][0] == latLng[0]) && (portal[p][1] == latLng[1])) {
+            document.getElementById('status').innerHTML = 'Duplicate portal'; 
+            return;            
+        }
+    }
+    for (var p=0; p < newPortals.length; p++) {
+        if ((newPortals[p][0] == latLng[0]) && (newPortals[p][1] == latLng[1])) {
+            document.getElementById('status').innerHTML = 'Already added'; 
+            return;            
+        }
+    }
+    
+    // Check to make sure it's in Seattle
+    // TODO some day: If this even works, stick the city into the database and do this in other cities
+    addRequest=new XMLHttpRequest();
+    addRequest.open('GET', 'https://maps.googleapis.com/maps/api/geocode/json?latlng='
+        + latLng[0] + ',' + latLng[1] + '&result_type=locality&key=AIzaSyASf7qjepsI9SUnp2Y5_RRlesn132jfA18');
+    addRequest.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            result = JSON.parse(this.responseText);
+            if (result.status == 'ZERO_RESULTS') {
+                document.getElementById('status').innerHTML = 'Google reverse geocoding failed.  Added portal anyway.';
+                addPortal(latLng);
+                return;
+            }
+            if (result.status != 'OK') {
+                document.getElementById('status').innerHTML = result.status; 
+                return;
+            }
+            var cities = new Set();
+
+            var resultCount = result.results.length;
+            for (var r = 0; r<resultCount; r++) {
+                var componentCount = result.results[r].address_components.length;
+                for (var c =0; c<componentCount; c++) {
+                    if (result.results[r].address_components[c].short_name.includes('Seattle')) {
+                        addPortal(latLng);
+
+                        document.getElementById('status').innerHTML = 'Portal added'; 
+                        document.getElementById('portalEntry').value = '';
+                        return;
+                    }
+                    else {
+                        cities.add(result.results[r].address_components[c].short_name);
+                    }
+                }
+            }
+            document.getElementById('status').innerHTML = 'Not in Seattle: '; 
+            var leadingComma = '';
+            for (let city of cities) {
+                document.getElementById('status').innerHTML += leadingComma + city;
+                leadingComma = ', ';
+            }
+        }
+    };
+    addRequest.send();  
+}
+function changeGlyph() {
+
+    // Save state
+    saveCookies();
+    
+    // Reload the page
+    window.location.reload(true);
+}
+</script>
+</head>
+
+<body>
+<script type="text/javascript"
+src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjVqY8VnMU&callback=initializeMap" async defer>
+</script>
+<div id="header" style="width:100%; height:10%;overflow:auto;">
+<input type="text" id="portalEntry" /> <span id=addPortal><button onclick="add()">Add</button></span>
+<select id="glyph" size="2" onchange="changeGlyph();">
+    <option>None</option>
+    <option>Abandon</option>
+    <option>Adapt</option>   
+    <option>Advance</option>   
+    <option>After</option>   
+    <option>Again</option>   
+    <option>All</option>   
+    <option>Answer</option>   
+    <option>Attack</option>   
+    <option>Avoid</option>       
+    <option>Barrier</option>
+    <option>Before</option>   
+    <option>Begin</option>   
+    <option>Human</option>   
+    <option>Body</option>   
+    <option>Breathe</option>   
+    <option>Capture</option>   
+    <option>Change</option>   
+    <option>Chaos</option>    
+    <option>Clear</option>     
+    <option>Clear All</option>   
+    <option>Complex</option>   
+    <option>Conflict</option>   
+    <option>Consquence</option>   
+    <option>Contemplate</option>   
+    <option>Reduce</option>   
+    <option>Courage</option>   
+    <option>Create</option>    
+    <option>Creativity</option>   
+    <option>Thought</option>   
+    <option>Danger</option>   
+    <option>Data</option>   
+    <option>Defend</option>   
+    <option>Destiny</option>   
+    <option>Destroy</option>   
+    <option>Deteriorate</option>        
+    <option>Die</option>   
+    <option>Difficult</option>   
+    <option>Discover</option>   
+    <option>Outside</option>   
+    <option>Easy</option>   
+    <option>End</option>   
+    <option>Enlightenment</option>   
+    <option>Equal</option>    
+    <option>Escape</option>   
+    <option>Evolution</option>   
+    <option>Failure</option>   
+    <option>Fear</option>   
+    <option>Follow</option>   
+    <option>Forget</option>   
+    <option>Future</option>      
+    <option>Gain</option>    
+    <option>Civilization</option>   
+    <option>Grow</option>   
+    <option>Harm</option>   
+    <option>Harmony</option>   
+    <option>Have</option>   
+    <option>Help</option>   
+    <option>Hide</option>   
+    <option>Self</option>    
+    <option>Ignore</option>   
+    <option>Imperfect</option>   
+    <option>Improve</option>   
+    <option>Impure</option>   
+    <option>Intellogence</option>   
+    <option>Interrupt</option>   
+    <option>Journey</option>   
+    <option>Knowledge</option>    
+    <option>Lead</option>   
+    <option>Legacy</option>   
+    <option>Less</option>   
+    <option>Liberate</option>   
+    <option>Lie</option>   
+    <option>Live Again</option>   
+    <option>Lose</option>   
+    <option>Message</option>    
+    <option>Mind</option>   
+    <option>More</option>   
+    <option>Mystery</option>   
+    <option>N'zeer</option>   
+    <option>Nature</option>   
+    <option>New</option>   
+    <option>Inside</option>   
+    <option>Nourish</option>    
+    <option>Old</option>   
+    <option>Open</option>   
+    <option>Open All</option>   
+    <option>Portal</option>   
+    <option>Past</option>    
+    <option>Path</option>     
+    <option>Perfection</option>   
+    <option>Perspective</option>   
+    <option>Potential</option>   
+    <option>Presence</option>   
+    <option>Now</option>   
+    <option>Pire</option>   
+    <option>Pursue</option>   
+    <option>Chase</option>    
+    <option>Question</option>   
+    <option>React</option>   
+    <option>Rebel</option>   
+    <option>Recharge</option>   
+    <option>Resistance</option>   
+    <option>Restraint</option>   
+    <option>Retreat</option>   
+    <option>Safety</option>    
+    <option>Save</option>   
+    <option>See</option>   
+    <option>Search</option>   
+    <option>Self</option>   
+    <option>Seperate</option>   
+    <option>Shaper</option>   
+    <option>Share</option>   
+    <option>Simple</option>    
+    <option>Soul</option>   
+    <option>Stability</option>   
+    <option>Strong</option>   
+    <option>Sustain</option>   
+    <option>Sustain All</option>   
+    <option>Technology</option>   
+    <option>Together</option>   
+    <option>Truth</option>    
+    <option>Unbounded</option>   
+    <option>Use</option>   
+    <option>Victory</option>   
+    <option>Want</option>   
+    <option>We</option>  
+    <option>Weak</option>  
+    <option>Worth</option>  
+    <option>XM</option>  
+    <option>You</option>  
+</select>
+Max size: <input id="maxSize" type="number" min="0" max="10" value="10" step="0.001" onchange="changeGlyph();">
+<br/>
+<span id=status> </span><br/>
+<span id=saveButton><button onclick="save()">Save</button></span><br/>
+</div>
+<div id="map_canvas" style="width:100%; height:90%"></div>
+</body>
+</html>
