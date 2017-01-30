@@ -384,7 +384,7 @@ function render() {
    
     var path = glyphPath[glyph];
     var sqPixelDist = glypPixelDist[glyph];
-    var pixelDist;
+    var pixelDist = [];
     var maxSize = document.getElementById("maxSize").value;
     
     for (var pdi=0; pdi < path.length; pdi++) {
