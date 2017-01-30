@@ -167,28 +167,6 @@ function render() {
         }
         return;
     }
-
-    //                     A
-    // B                                       C
-    //           D                   E
-    //                     F
-    //           G                   H
-    // I                                       J
-    //                     K
-    //
-    // A = (56,   0) => (14,  0)
-    // B = (0,   32) => ( 0,  8)
-    // C = (112, 32) => (28,  8)
-    // D = (28,  48) => ( 7, 12)
-    // E = (84,  48) => (21, 12)
-    // F = (56,  64) => (14, 16)
-    // G = (28,  80) => ( 7, 20)
-    // H = (84,  80) => (21, 20)
-    // I = (0,   96) => ( 0, 24)
-    // J = (112, 96) => (28, 24)
-    // K = (56, 128) => (14, 32)
-    
-
         
     var adjacency =[]; // for each pair of portals, the slope of the line between them
                        // the slope is expressed as a tuple indicating direction
@@ -231,30 +209,52 @@ function render() {
     var downRight12_7 = [-12,-7];
     var upRight12_7 = [-12,7];
     
-    //var path = [[-1,0],[0,1]];  // down, right
+
+    //                     A
+    // B                                       C
+    //           D                   E
+    //                     F
+    //           G                   H
+    // I                                       J
+    //                     K
+    //
+    // A = (56,   0) => (14,  0)
+    // B = (0,   32) => ( 0,  8)
+    // C = (112, 32) => (28,  8)
+    // D = (28,  48) => ( 7, 12)
+    // E = (84,  48) => (21, 12)
+    // F = (56,  64) => (14, 16)
+    // G = (28,  80) => ( 7, 20)
+    // H = (84,  80) => (21, 20)
+    // I = (0,   96) => ( 0, 24)
+    // J = (112, 96) => (28, 24)
+    // K = (56, 128) => (14, 32)
+    
     var glyphPath = {
-        'Abandon' : [upLeft47, upRight47], // abandon
-        'Adapt'   : [downRight12_7, upLeft47, downRight47],
-        'Advance' : [upRight12_7],
-        'After'   : [upRight47, down, upLeft47], 
-        'Again'   : [upRight12_7, down, upRight47, down], // I->D->G->E->H 
-        'Barrier' : [down,downRight47], // barrier: down, down-right
-        'Clear'   : [down],              // clear: straight line
-        'Gain'    : [downRight12_7],    // gain: down-right from B to G
-        'Now'     : [down, right, up],   // D->G->H->E 
-        'Path'    : [down,downLeft47]  // path: down, down-left
+        'Abandon'    : [upLeft47, upRight47], // abandon
+        'Adapt'      : [downRight12_7, upLeft47, downRight47],
+        'Advance'    : [upRight12_7],
+        'After'      : [upRight47, down, upLeft47], 
+        'Again'      : [upRight12_7, down, upRight47, down], // I->D->G->E->H 
+        'Barrier'    : [down,downRight47], // barrier: down, down-right
+        'Clear'      : [down],              // clear: straight line
+        'Gain'       : [downRight12_7],    // gain: down-right from B to G
+        'Now'        : [down, right, up],   // D->G->H->E 
+        'Path'       : [down,downLeft47],  // path: down, down-left
+        'Resistance' : [downRight12_7, up, downLeft12_7, right]   // G->K->A->D->E
     };
     var glypPixelDist = {
-        'Abandon' : [14*14 + 8*8, 16*16 + 28*28],
-        'Adapt'   : [7*7+12*12, 7*7+4*4, 7*7+4*4],
-        'Advance' : [1],
-        'After'   : [14*14 + 8*8,  16*16, 14*14 + 8*8], 
-        'Again'   : [7*7+12*12, 8*8, 14*14+8*8, 8*8], // I->D->G->E->H 
-        'Barrier' : [16*16, 14*14 + 8*8],
-        'Clear'   : [1],
-        'Gain'    : [1],
-        'Now'     : [8*8, 14*14, 8*8], // D->G->H->E          
-        'Path'    : [16*16, 14*14 + 8*8]
+        'Abandon'    : [14*14 + 8*8, 16*16 + 28*28],
+        'Adapt'      : [7*7+12*12, 7*7+4*4, 7*7+4*4],
+        'Advance'    : [1],
+        'After'      : [14*14 + 8*8,  16*16, 14*14 + 8*8], 
+        'Again'      : [7*7+12*12, 8*8, 14*14+8*8, 8*8], // I->D->G->E->H 
+        'Barrier'    : [16*16, 14*14 + 8*8],
+        'Clear'      : [1],
+        'Gain'       : [1],
+        'Now'        : [8*8, 14*14, 8*8], // D->G->H->E          
+        'Path'       : [16*16, 14*14 + 8*8],
+        'Resistance' : [7*7+12*12, 32*32, 7*7+12*12, 14*14]    // G->K->A->D->E     
     };
   
     //'All' : [],   
@@ -352,7 +352,6 @@ function render() {
     //'React' : [],   
     //'Rebel' : [],   
     //'Recharge' : [],   
-    //'Resistance' : [],   
     //'Restraint' : [],   
     //'Retreat' : [],   
     //'Safety' : [],    
