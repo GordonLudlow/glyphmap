@@ -384,8 +384,12 @@ function render() {
    
     var path = glyphPath[glyph];
     var sqPixelDist = glypPixelDist[glyph];
-    var pixelDist = [Math.sqrt(sqPixelDist[0]), Math.sqrt(sqPixelDist[1])];
+    var pixelDist;
     var maxSize = document.getElementById("maxSize").value;
+    
+    for (var pdi=0; pd < path.length; pd++) {
+        pixelDist[pdi] = Math.sqrt(sqPixelDist[pdi]);
+    }
     
     // Special case for lenth 1 path
     if (path.length == 1) {
