@@ -187,6 +187,9 @@ function render() {
     // I = (0,   96) => ( 0, 24)
     // J = (112, 96) => (28, 24)
     // K = (56, 128) => (14, 32)
+    
+    
+    
         
     var adjacency =[]; // for each pair of portals, the slope of the line between them
                        // the slope is expressed as a tuple indicating direction
@@ -235,21 +238,150 @@ function render() {
         'Adapt'   : [downRight12_7, upLeft47, downRight47],
         'Advance' : [upRight12_7],
         'After'   : [upRight47, down, upLeft47], 
+        'Again'   : [upRight12_7, down, upRight47, down], // I->D->G->E->H 
         'Barrier' : [down,downRight47], // barrier: down, down-right
-        'Path'    : [down,downLeft47],  // path: down, down-left
+        'Clear'   : [down],              // clear: straight line
         'Gain'    : [downRight12_7],    // gain: down-right from B to G
-        'Clear'   : [down]              // clear: straight line
+        'Path'    : [down,downLeft47]  // path: down, down-left
     };
     var glypPixelDist = {
         'Abandon' : [14*14 + 8*8, 16*16 + 28*28],
         'Adapt'   : [7*7+12*12, 7*7+4*4, 7*7+4*4],
         'Advance' : [1],
         'After'   : [14*14 + 8*8,  16*16, 14*14 + 8*8], 
+        'Again'   : [7*7+12*12, 8*8, 14*14+8*8, 8*8], // I->D->G->E->H 
         'Barrier' : [16*16, 14*14 + 8*8],
-        'Path'    : [16*16, 14*14 + 8*8],
-        'Gain'    : [1],
-        'Clear'   : [1]
+        'Clear'   : [1],
+        'Gain'    : [1],        
+        'Path'    : [16*16, 14*14 + 8*8]
     };
+  
+    //'All' : [],   
+    //'Answer' : [],   
+    //'Attack' : [],   
+    //'Avoid' : [],       
+    //'Barrier' : [],
+    //'Before' : [],   
+    //'Begin' : [],   
+    //'Human' : [],   
+    //'Body' : [],   
+    //'Breathe' : [],   
+    //'Capture' : [],   
+    //'Change' : [],   
+    //'Chaos' : [],    
+    //'Clear' : [],     
+    //'Clear All' : [],   
+    //'Complex' : [],   
+    //'Conflict' : [],   
+    //'Consquence' : [],   
+    //'Contemplate' : [],   
+    //'Reduce' : [],   
+    //'Courage' : [],   
+    //'Create' : [],    
+    //'Creativity' : [],   
+    //'Thought' : [],   
+    //'Danger' : [],   
+    //'Data' : [],   
+    //'Defend' : [],   
+    //'Destiny' : [],   
+    //'Destroy' : [],   
+    //'Deteriorate' : [],        
+    //'Die' : [],   
+    //'Difficult' : [],   
+    //'Discover' : [],   
+    //'Outside' : [],   
+    //'Easy' : [],   
+    //'End' : [],   
+    //'Enlightenment' : [],   
+    //'Equal' : [],    
+    //'Escape' : [],   
+    //'Evolution' : [],   
+    //'Failure' : [],   
+    //'Fear' : [],   
+    //'Follow' : [],   
+    //'Forget' : [],   
+    //'Future' : [],      
+    //'Gain' : [],    
+    //'Civilization' : [],   
+    //'Grow' : [],   
+    //'Harm' : [],   
+    //'Harmony' : [],   
+    //'Have' : [],   
+    //'Help' : [],   
+    //'Hide' : [],   
+    //'Self' : [],    
+    //'Ignore' : [],   
+    //'Imperfect' : [],   
+    //'Improve' : [],   
+    //'Impure' : [],   
+    //'Intellogence' : [],   
+    //'Interrupt' : [],   
+    //'Journey' : [],   
+    //'Knowledge' : [],    
+    //'Lead' : [],   
+    //'Legacy' : [],   
+    //'Less' : [],   
+    //'Liberate' : [],   
+    //'Lie' : [],   
+    //'Live Again' : [],   
+    //'Lose' : [],   
+    //'Message' : [],    
+    //'Mind' : [],   
+    //'More' : [],   
+    //'Mystery' : [],   
+    //'N'zeer' : [],   
+    //'Nature' : [],   
+    //'New' : [],   
+    //'Inside' : [],   
+    //'Nourish' : [],    
+    //'Old' : [],   
+    //'Open' : [],   
+    //'Open All' : [],   
+    //'Portal' : [],   
+    //'Past' : [],    
+    //'Path' : [],     
+    //'Perfection' : [],   
+    //'Perspective' : [],   
+    //'Potential' : [],   
+    //'Presence' : [],   
+    //'Now' : [],   
+    //'Pire' : [],   
+    //'Pursue' : [],   
+    //'Chase' : [],    
+    //'Question' : [],   
+    //'React' : [],   
+    //'Rebel' : [],   
+    //'Recharge' : [],   
+    //'Resistance' : [],   
+    //'Restraint' : [],   
+    //'Retreat' : [],   
+    //'Safety' : [],    
+    //'Save' : [],   
+    //'See' : [],   
+    //'Search' : [],   
+    //'Self' : [],   
+    //'Seperate' : [],   
+    //'Shaper' : [],   
+    //'Share' : [],   
+    //'Simple' : [],    
+    //'Soul' : [],   
+    //'Stability' : [],   
+    //'Strong' : [],   
+    //'Sustain' : [],   
+    //'Sustain All' : [],   
+    //'Technology' : [],   
+    //'Together' : [],   
+    //'Truth' : [],    
+    //'Unbounded' : [],   
+    //'Use' : [],   
+    //'Victory' : [],   
+    //'Want' : [],   
+    //'We' : [],  
+    //'Weak' : [],  
+    //'Worth' : [],  
+    //'XM' : [],  
+    //'You' : [],  
+   
     var path = glyphPath[glyph];
     var sqPixelDist = glypPixelDist[glyph];
     var pixelDist = [Math.sqrt(sqPixelDist[0]), Math.sqrt(sqPixelDist[1])];
@@ -482,68 +614,6 @@ function initializeMap()
             }
         };
         portalRequest.send();
-        
-        /*
-        for (var i = 0; i < portalCount; i++) {
-            var circle = new google.maps.Circle({
-                strokeColor: '#FF0000',
-                strokeOpacity: 0.8,
-                strokeWeight: 2,
-                fillColor: '#FF0000',
-                fillOpacity: 0.35,
-                map: map,
-                center: {lat: portal[i][0], lng: portal[i][1]},
-                radius: 40
-            });
-        }
-        */
-        
-        /*
-        // Find a rectangle (just as a test of using lat/long instead of projecting)
-        var closest = 1000;
-        var rectangle = [0,1,2,3];
-        for (var i=0; i<portalCount;i++){
-            for (var j=0; j<portalCount;j++){
-                if (j==i) continue;
-                for (var k=0;k<portalCount;k++){
-                    if (k==i || k==j) continue;
-                    for (var l=0;l<portalCount;l++){
-                        if (l==i || l==j || l==k) continue;
-                        // we want the closest i.x == j.x, k.x == l.x, i.y == k.y, j.y == l.y
-                        // for rect i, j, l, k(, i)
-                        var maxError = Math.max(
-                            Math.abs(portal[i][0] - portal[j][0]),
-                            Math.abs(portal[k][0] - portal[l][0]),
-                            Math.abs(portal[i][1] - portal[k][1]),
-                            Math.abs(portal[j][1] - portal[l][1]));
-                        if (maxError < closest) {
-                            closest = maxError;
-                            rectangle = [i,j,k,l];
-                        }
-                        
-                    }
-                }
-            }
-        }
-
-        // Draw the rectangle
-        var polyline = new google.maps.Polyline({
-                path: [
-                {lat: portal[rectangle[0]][0], lng: portal[rectangle[0]][1]},
-                {lat: portal[rectangle[1]][0], lng: portal[rectangle[1]][1]},
-                {lat: portal[rectangle[3]][0], lng: portal[rectangle[3]][1]},
-                {lat: portal[rectangle[2]][0], lng: portal[rectangle[2]][1]},
-                {lat: portal[rectangle[0]][0], lng: portal[rectangle[0]][1]}
-                ],
-                strokeColor: "#FF00FF",
-                strokeOpacity: 1.0,
-                strokeWeight: 2,
-                map: map});
- 
-        */
-
-        // What I want is...
-
     } 
 }
 var saveRequest;
@@ -554,9 +624,6 @@ function handleSaveRequest()
     {
         if (saveRequest.status == 200) // OK
         {
-            // Success!
-            //window.location.href += "?foo=bar"; //to pass in parameter(s) of the current viewport
-        
             // Save current map options so that they'll be retained
             saveCookies();
          
