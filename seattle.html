@@ -188,8 +188,7 @@ function render() {
     // J = (112, 96) => (28, 24)
     // K = (56, 128) => (14, 32)
     
-    
-    
+
         
     var adjacency =[]; // for each pair of portals, the slope of the line between them
                        // the slope is expressed as a tuple indicating direction
@@ -242,6 +241,7 @@ function render() {
         'Barrier' : [down,downRight47], // barrier: down, down-right
         'Clear'   : [down],              // clear: straight line
         'Gain'    : [downRight12_7],    // gain: down-right from B to G
+        'Now'     : [down, right, up],   // D->G->H->E 
         'Path'    : [down,downLeft47]  // path: down, down-left
     };
     var glypPixelDist = {
@@ -252,7 +252,8 @@ function render() {
         'Again'   : [7*7+12*12, 8*8, 14*14+8*8, 8*8], // I->D->G->E->H 
         'Barrier' : [16*16, 14*14 + 8*8],
         'Clear'   : [1],
-        'Gain'    : [1],        
+        'Gain'    : [1],
+        'Now'     : [8*8, 14*14, 8*8], // D->G->H->E          
         'Path'    : [16*16, 14*14 + 8*8]
     };
   
@@ -344,7 +345,6 @@ function render() {
     //'Perspective' : [],   
     //'Potential' : [],   
     //'Presence' : [],   
-    //'Now' : [],   
     //'Pire' : [],   
     //'Pursue' : [],   
     //'Chase' : [],    
