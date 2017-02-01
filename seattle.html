@@ -275,7 +275,8 @@ function render() {
         'Shaper'     : [7*7+4*4, 8*8, 7*7+12*12, 7*7+12*12, 8*8, 7*7+4*4] // I->G->D->A->E->H->J 
     };
     var glyphPoints = {
-        'Abandon'    : [10, 8, 2]  // K->I->C
+        'Abandon'    : [10, 8, 2],      // K->I->C
+        'Resistance' : [6, 10, 0, 3, 4] // G->K->A->D->E 
     }
     
     // Either:
@@ -631,9 +632,9 @@ function render() {
 
                         var polyLine = new google.maps.Polyline({
                             path: linePoints,
-                            strokeColor: '#00FF00',
+                            strokeColor: '#FF0000',
                             strokeOpacity: 1.0,
-                            strokeWeight: 20,
+                            strokeWeight: 2,
                             map: map
                         });   
                     }
