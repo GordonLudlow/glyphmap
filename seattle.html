@@ -243,7 +243,8 @@ function render() {
         'Gain'       : [downRight12_7],    // gain: down-right from B to G
         'Now'        : [down, right, up],   // D->G->H->E 
         'Path'       : [down,downLeft47],  // path: down, down-left
-        'Resistance' : [downRight12_7, up, downLeft12_7, right]   // G->K->A->D->E
+        'Resistance' : [downRight12_7, up, downLeft12_7, right],   // G->K->A->D->E
+        'Shaper'     : [upRight47, up, upRight12_7, downRight12_7, down, downRight47] // I->G->D->A->E->H->J 
     };
     var glypPixelDist = {
         'Abandon'    : [14*14 + 8*8, 16*16 + 28*28],
@@ -256,7 +257,8 @@ function render() {
         'Gain'       : [1],
         'Now'        : [8*8, 14*14, 8*8], // D->G->H->E          
         'Path'       : [16*16, 14*14 + 8*8],
-        'Resistance' : [7*7+12*12, 32*32, 7*7+12*12, 14*14]    // G->K->A->D->E     
+        'Resistance' : [7*7+12*12, 32*32, 7*7+12*12, 14*14],    // G->K->A->D->E 
+        'Shaper'     : [7*7+4*4, 8*8, 7*7+12*12, 7*7+12*12, 8*8, 7*7+4*4] // I->G->D->A->E->H->J 
     };
   
     //'All' : [],   
@@ -361,8 +363,7 @@ function render() {
     //'See' : [],   
     //'Search' : [],   
     //'Self' : [],   
-    //'Seperate' : [],   
-    //'Shaper' : [],   
+    //'Seperate' : [],     
     //'Share' : [],   
     //'Simple' : [],    
     //'Soul' : [],   
