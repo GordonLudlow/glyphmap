@@ -197,12 +197,16 @@ function render() {
     findAdjacent(adjacency,   0, 1);
     findAdjacent(adjacency,  12, 7);
     findAdjacent(adjacency, -12, 7);    
- 
+    findAdjacent(adjacency,  20, 7);
+    findAdjacent(adjacency, -20, 7);  
+    findAdjacent(adjacency,   4, 21);
+    findAdjacent(adjacency,  -4, 21);
+    
     var up = [1,0];
     var down = [-1,0];
     var right = [0,1];
     var left = [0,-1];
-    var downRight47 = [-4,-7];
+    var downRight47 = [-4,-7]; // these are a little funny because they're rise,run instead of x,y
     var upLeft47 = [4,7];
     var upRight47 = [-4,7];    
     var downLeft47 = [4,-7];
@@ -210,6 +214,14 @@ function render() {
     var upRight12_7 = [-12,7];
     var downLeft12_7 = [12,-7];
     var upLeft12_7 = [12,7];
+    var downRight20_7 = [-20,-7];
+    var upRight20_7 = [-20,7];
+    var downLeft20_7 = [20,-7];
+    var upLeft20_7 = [20,7];    
+    var downRight4_21 = [-4,-21];
+    var upRight4_21 = [-4,21];
+    var downLeft4_21 = [4,-21];
+    var upLeft4_21 = [4,21];    
     
 
     //                     A
@@ -233,7 +245,7 @@ function render() {
     // K = (56, 128) => (14, 32)
     
     var glyphPath = {
-        'Abandon'    : [upLeft47, upRight47], // abandon
+        'Abandon'    : [upLeft47, upRight47], // abandon K->I->C
         'Adapt'      : [downRight12_7, upLeft47, downRight47],
         'Advance'    : [upRight12_7],
         'After'      : [upRight47, down, upLeft47], 
@@ -262,7 +274,155 @@ function render() {
         'Resistance' : [7*7+12*12, 32*32, 7*7+12*12, 14*14],    // G->K->A->D->E 
         'Shaper'     : [7*7+4*4, 8*8, 7*7+12*12, 7*7+12*12, 8*8, 7*7+4*4] // I->G->D->A->E->H->J 
     };
-  
+    var glyphPoins = {
+        'Abandon'    : [10, 8, 2]  // K->I->C
+    }
+    
+    // Either:
+    // 1. Add some additional constraints or invisible edges like in 'Resistance' 
+    //    the 1st to 4th points are 'up' at a distance of 8*8
+    // 2. Change tack and instead of finding the actual path, find the grid points.
+    //    So for the complete graph of 11 vertices, find the adjacencies of each
+    //    edge.  Instead of glyphPath and glyphPixelDist, build edge and edgeDist.
+    //    For example, edge['D']['G'] = down, edgeDist['D']['G'] = 8*8
+    //    To find the glyph 'Now', you find the subgraph for DGHDE.
+    //    Subgraph finding is similar to pathfinding, but instead of building a 
+    //    path from point to point, you build a subgraph satisfying all edge constraints
+    //    and then pick the best by distance ratio error.
+    //    So for 'Now' the edges to enforce would be DG, DH, DE, GH, GE, HE.
+    //    Path was point to next point.  Subgraph is point to all other remaining points.
+
+    // 1 feels like a hack.  2 feels like a solution.
+    edge = [];
+    edgeDist = [];
+    for (var i = 0; i < 11; i++) {
+        edge[i] = [];
+        edgeDist[i] = [];
+        for (var j = 0; j < 11; j++) {
+            edge[i][j] = [];
+        }
+    }
+    edge[0][1] = downLeft47; // A->B
+    edgeDist[0][1] = 14*14 + 8*8;
+    edge[0][2] = downRight47;// A->C
+    edgeDist[0][2] = 14*14+8*8;
+    edge[0][3] = downLeft12_7;//A->D
+    edgeDist[0][3] = 7*7 + 12*12;
+    edge[0][4] = downRight12_7; // A->E
+    edgeDist[0][4] = 7*7 + 12*12;
+    edge[0][5] = down; // A->F
+    edgeDist[0][5] = 16*16;
+    edge[0][6] = downLeft20_7; // A->G
+    edgeDist[0][6] = 7*7 + 20*20;
+    edge[0][7] = downRight20_7; // A->H
+    edgeDist[0][7] = 7*7 + 20*20;
+    edge[0][8] = downLeft12_7;// A->I
+    edgeDist[0][8] = 14*14 + 24*24;
+    edge[0][9] = downRight12_7;// A->J
+    edgeDist[0][8] = 14*14 + 24*24;
+    edge[0][10] = down; // A->K
+    edgeDist[0][10] = 32*32;
+    edge[1][2] = right; //B->C
+    edgeDist[1][2] = 28*28;
+    edge[1][3] = downRight47; //B->D
+    edgeDist[1][3] = 7*7 + 4*4;
+    edge[1][4] downRight4_21; //B->E
+    edgeDist[1][4] = 21*21 + 4*4;
+    edge[1][5] = downRight47; //B->F
+    edgeDist[1][5] = 14*14 + 8*8;
+    edge[1][6] = downRight12_7; //B->G
+    edgeDist[1][6] = 7*7 + 12*12;
+    edge[1][7] = downRight47; //B->H
+    edgeDist[1][7] = 21*21 + 12*12;
+    edge[1][8] = down; //B->I
+    edgeDist[1][8] = 16*16;
+    edge[1][9] = downRight47; //B->J
+    edgeDist[1][9] = 28*28 + 16*16;
+    edge[1][10] = downRight12_7; //B->K
+    edgeDist[1][10] = 14*14 + 24*24;
+    edge[2][3] = downLeft4_21; //C->D
+    edgeDist[1][3] = 21*21 + 4*4;
+    edge[2][4] = downLeft47 ; //C->E
+    edgeDist[1][4] = 7*7+4*4;
+    edge[2][5] = downLeft47; //C->F
+    edgeDist[1][5] = 14*14 + 8*8;
+    edge[2][6] = downLeft47; //C->G
+    edgeDist[1][6] = 21*21 + 12*12;
+    edge[2][7] = downLeft12_7; //C->H
+    edgeDist[1][7] = 7*7 + 12*12;
+    edge[2][8] = downLeft47; //C->I
+    edgeDist[1][8] = 28*28 + 16*16;
+    edge[2][9] = down; //C->J
+    edgeDist[1][9] = 16*16;
+    edge[2][10] = downLeft12_7; //C->K
+    edgeDist[1][10] = 14*14 + 24*24;    
+    edge[3][4] = right; //D->E
+    edgeDist[3][4] = 14*14;
+    edge[3][5] = downRight47; //D->F
+    edgeDist[3][5] = 7*7 + 4*4;
+    edge[3][6] = down; //D->G
+    edgeDist[3][6] = 8*8;
+    edge[3][7] = downRight47; //D->H
+    edgeDist[3][7] = 14*14 + 8*8;
+    edge[3][8] = downLeft12_7; //D->I
+    edgeDist[3][8] = 7*7 + 12*12;
+    edge[3][9] = downRight47; //D->J
+    edgeDist[3][9] = 21*21 + 12*12;
+    edge[3][10] = downRight20_7; //D->K
+    edgeDist[3][10] = 7*7 + 20*20; 
+    edge[4][5] = downLeft47; //E->F
+    edgeDist[4][5] = 7*7 + 4*4;
+    edge[4][6] = downLeft47; //E->G
+    edgeDist[4][6] = 14*14 + 8*8;
+    edge[4][7] = down; //E->H
+    edgeDist[4][7] = 8*8;
+    edge[4][8] = downLeft47; //E->I
+    edgeDist[4][8] = 21*21 + 12*12;
+    edge[4][9] = downRight12_7; //E->J
+    edgeDist[4][9] = 7*7 + 12*12;
+    edge[4][10] = downLeft20_7; //E->K
+    edgeDist[4][10] = 7*7 + 20*20; 
+    edge[5][6] = downLeft47; //F->G
+    edgeDist[5][6] = 7*7 + 4*4;
+    edge[5][7] = downRight47; //F->H
+    edgeDist[5][7] = 7*7 + 4*4;
+    edge[5][8] = downLeft47; //F->I
+    edgeDist[5][8] = 14*14 + 8*8;
+    edge[5][9] = downRight47; //F->J
+    edgeDist[5][9] = 14*14 + 8*8;
+    edge[5][10] = down; //F->K
+    edgeDist[5][10] = 16*16; 
+    edge[6][7] = right; //G->H
+    edgeDist[6][7] = 14*14;
+    edge[6][8] = downLeft47; //G->I
+    edgeDist[6][8] = 7*7 + 4*4;
+    edge[6][9] = downRight4_21; //G->J
+    edgeDist[6][9] = 21*21 + 4*4;
+    edge[6][10] = downRight12_7; //G->K
+    edgeDist[6][10] = 7*7 + 12*12; 
+    edge[7][8] = downLeft4_21; //H->I
+    edgeDist[7][8] = 21*21 + 4*4;
+    edge[7][9] = downRight47; //H->J
+    edgeDist[7][9] = 7*7 + 4*4;
+    edge[7][10] = downRight12_7; //H->K
+    edgeDist[7][10] = 7*7 + 12*12; 
+    edge[8][9] = right; //I->J
+    edgeDist[8][9] = 28*28;
+    edge[8][10] = downRight47; //I->K
+    edgeDist[8][10] = 14*14 + 8*8; 
+    edge[9][10] = downLeft47; //J->K
+    edgeDist[9][10] = 14*14 + 8*8;     
+    
+    // The back edge is the same distance and opposite direction of the foreward edge
+    for (var i=0; i<10; i++) {
+        for (var j = 0; j<11; j++) {
+            // [i][j] was explicitly assigned above
+            edge[j][i][0] = -edge[i][j][0];
+            edge[j][i][1] = -edge[i][j][1];
+            edgeDist[j][i] = edgeDist[i][j];
+        }
+    } 
+    
     //'Answer' : [],   
     //'Attack' : [],   
     //'Avoid' : [],       
@@ -389,6 +549,7 @@ function render() {
     var sqPixelDist = glypPixelDist[glyph];
     var pixelDist = [];
     var maxSize = document.getElementById("maxSize").value;
+    var points = glyphPoints[glyph];
     
     for (var pdi=0; pdi < path.length; pdi++) {
         pixelDist[pdi] = Math.sqrt(sqPixelDist[pdi]);
@@ -434,6 +595,54 @@ function render() {
         }
     }
     else {
+        var stack = [];
+        for (var p0=0; p0<portalCount; p0++) {
+            for (var p1=0; p1<portalCount; p1++) {
+                if (!CompareArrays(adjacency[p0][p1], edge[points[0]][points[1]])) {
+                    stack.push([p0,p1]);
+                }
+            }
+        }
+        var minError = Number.MAX_VALUE;
+        while (stack.length) {
+            var partialSet = stack.pop();
+            for (var p=0; p<portalCount; p++) {
+                var match=true;
+                for (var psi=0; psi<partialSet.length && match; psi++) {
+                    if (CompareArrays(adjacency[partialSet[psi]][p], edge[points[psi]][points[partialSet.length]])) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) {
+                    partialSet.push(p);
+                    if (partialSet.length < points.length) {
+                        stack.push(partialSet);
+                    }
+                    else {
+                        // partialSet is a collection of points that work to draw the glyph
+                        for (p in partialSet) {
+                            AddMarker(portal[partialSet[p]][0], portal[partialSet[p]][1]);  
+                        } 
+                        
+                        var linePoints = partialSet.map(function (item) {
+                            return new google.maps.LatLng(portal[item][0], portal[item][1]);
+                        });            
+
+                        var polyLine = new google.maps.Polyline({
+                            path: linePoints,
+                            strokeColor: '#00FF00',
+                            strokeOpacity: 1.0,
+                            strokeWeight: 20,
+                            map: map
+                        });   
+                    }
+                }
+            }
+        }
+    
+    
+    /*
         var stack = [];
         for (var p0=0; p0<portalCount; p0++) {
             for (var p1=0; p1<portalCount; p1++) {
@@ -548,7 +757,9 @@ function render() {
                 }
             }
         }
+        */
     }
+    /*
     if (!bestPath) return;
     
     var linePoints = bestPath.map(function (item) {
@@ -571,6 +782,7 @@ function render() {
     }        
     
     document.getElementById('status').innerHTML = bestSize;
+    */
 }
 
 function initializeMap() 
