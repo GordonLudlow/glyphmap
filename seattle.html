@@ -238,6 +238,7 @@ function render() {
         'Advance'    : [upRight12_7],
         'After'      : [upRight47, down, upLeft47], 
         'Again'      : [upRight12_7, down, upRight47, down], // I->D->G->E->H 
+        'All'        : [upLeft47, up, upRight47, downRight47, down, downLeft47], //K->I->B->A->C->J->K           
         'Barrier'    : [down,downRight47], // barrier: down, down-right
         'Clear'      : [down],              // clear: straight line
         'Gain'       : [downRight12_7],    // gain: down-right from B to G
@@ -252,6 +253,7 @@ function render() {
         'Advance'    : [1],
         'After'      : [14*14 + 8*8,  16*16, 14*14 + 8*8], 
         'Again'      : [7*7+12*12, 8*8, 14*14+8*8, 8*8], // I->D->G->E->H 
+        'All'        : [14*14+8*8, 16*16, 14*14+8*8, 14*14+8*8, 16*16, 14*14+8*8], //K->I->B->A->C->J->K  
         'Barrier'    : [16*16, 14*14 + 8*8],
         'Clear'      : [1],
         'Gain'       : [1],
@@ -261,7 +263,6 @@ function render() {
         'Shaper'     : [7*7+4*4, 8*8, 7*7+12*12, 7*7+12*12, 8*8, 7*7+4*4] // I->G->D->A->E->H->J 
     };
   
-    //'All' : [],   
     //'Answer' : [],   
     //'Attack' : [],   
     //'Avoid' : [],       
