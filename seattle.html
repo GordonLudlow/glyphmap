@@ -457,10 +457,10 @@ function render() {
                         // Found full length path with the correct turns
                         
                         // Is it long enough?
+                        var intermediates = [];
                         if (path.length < 5) {
                             // The glyph itself doesn't have 6 points, are there extra itermediary points?
                             var intermediateCount = 0;
-                            var intermediates = [];
                             for (var epi=0; epi<partialPathLength;epi++) {
                                 for (var pi=0; pi<portalCount; pi++) {
                                     if (!CompareArrays(adjacency[extendedPath[epi]][pi], path[epi])
