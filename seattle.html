@@ -68,17 +68,17 @@ function saveCookies() {
     document.cookie = "maxSize=" + JSON.stringify(document.getElementById("maxSize").value) + "; " + expires;
  }
 
-function findAdjacent(adjacent, rise, run) {
+function findAdjacent(adjacent, precision, rise, run) {
     var interceptMap = {};
     for (var p=0; p < portalCount; p++) {
         if (rise==0) {
-            var intercept = (portal[p][0]).toFixed(4);
+            var intercept = (portal[p][0]).toFixed(precision);
         }
         else if (run==0) {
-            var intercept = (portal[p][1]).toFixed(4);
+            var intercept = (portal[p][1]).toFixed(precision);
         }
         else {
-            var intercept = (portal[p][0] + (rise*portal[p][1]/run)).toFixed(4);
+            var intercept = (portal[p][0] + (rise*portal[p][1]/run)).toFixed(precision);
         }
         if (intercept in interceptMap) {
             interceptMap[intercept].push(p);
@@ -179,6 +179,7 @@ function render() {
             adjacency[p0][p1] = [0,0];
         }
     }
+    var nearAdjacency = adjacency.slice(); // nearAdjacency is a less precise version of adjacency used for aligning points that don't have lines drawn between them
     
     var sqDist =[]; 
     var dist = [];
@@ -190,18 +191,31 @@ function render() {
             dist[p0][p1] = 0;
         }
     }    
+
+    var adjacencyPrecision = 4;
+    var nearAdjacencyPrecision = 5;
+    findAdjacent(adjacency, adjacencyPrecision,   4,  7);
+    findAdjacent(adjacency, adjacencyPrecision,  -4,  7);
+    findAdjacent(adjacency, adjacencyPrecision,   1,  0);
+    findAdjacent(adjacency, adjacencyPrecision,   0,  1);
+    findAdjacent(adjacency, adjacencyPrecision,  12,  7);
+    findAdjacent(adjacency, adjacencyPrecision, -12,  7);
+    findAdjacent(adjacency, adjacencyPrecision,  20,  7);
+    findAdjacent(adjacency, adjacencyPrecision, -20,  7);
+    findAdjacent(adjacency, adjacencyPrecision,   4, 21);
+    findAdjacent(adjacency, adjacencyPrecision,  -4, 21);
     
-    findAdjacent(adjacency,   4, 7);
-    findAdjacent(adjacency,  -4, 7);
-    findAdjacent(adjacency,   1, 0);
-    findAdjacent(adjacency,   0, 1);
-    findAdjacent(adjacency,  12, 7);
-    findAdjacent(adjacency, -12, 7);    
-    findAdjacent(adjacency,  20, 7);
-    findAdjacent(adjacency, -20, 7);  
-    findAdjacent(adjacency,   4, 21);
-    findAdjacent(adjacency,  -4, 21);
-    
+    findAdjacent(nearAdjacency, nearAdjacencyPrecision,   4,  7);
+    findAdjacent(nearAdjacency, nearAdjacencyPrecision,  -4,  7);
+    findAdjacent(nearAdjacency, nearAdjacencyPrecision,   1,  0);
+    findAdjacent(nearAdjacency, nearAdjacencyPrecision,   0,  1);
+    findAdjacent(nearAdjacency, nearAdjacencyPrecision,  12,  7);
+    findAdjacent(nearAdjacency, nearAdjacencyPrecision, -12,  7);
+    findAdjacent(nearAdjacency, nearAdjacencyPrecision,  20,  7);
+    findAdjacent(nearAdjacency, nearAdjacencyPrecision, -20,  7);
+    findAdjacent(nearAdjacency, nearAdjacencyPrecision,   4, 21);
+    findAdjacent(nearAdjacency, nearAdjacencyPrecision,  -4, 21);    
+       
     var up = [1,0];
     var down = [-1,0];
     var right = [0,1];
@@ -222,8 +236,7 @@ function render() {
     var upRight4_21 = [-4,21];
     var downLeft4_21 = [4,-21];
     var upLeft4_21 = [4,21];    
-    
-
+        
     //                     A
     // B                                       C
     //           D                   E
@@ -281,21 +294,6 @@ function render() {
         'Resistance' : [10, 0, 3, 4] // (G->)K->A->D->E cheating version omitting the first point
     }
     
-    // Either:
-    // 1. Add some additional constraints or invisible edges like in 'Resistance' 
-    //    the 1st to 4th points are 'up' at a distance of 8*8
-    // 2. Change tack and instead of finding the actual path, find the grid points.
-    //    So for the complete graph of 11 vertices, find the adjacencies of each
-    //    edge.  Instead of glyphPath and glyphPixelDist, build edge and edgeDist.
-    //    For example, edge['D']['G'] = down, edgeDist['D']['G'] = 8*8
-    //    To find the glyph 'Now', you find the subgraph for DGHDE.
-    //    Subgraph finding is similar to pathfinding, but instead of building a 
-    //    path from point to point, you build a subgraph satisfying all edge constraints
-    //    and then pick the best by distance ratio error.
-    //    So for 'Now' the edges to enforce would be DG, DH, DE, GH, GE, HE.
-    //    Path was point to next point.  Subgraph is point to all other remaining points.
-
-    // 1 feels like a hack.  2 feels like a solution.
     edge = [];
     edgeDist = [];
     for (var i = 0; i < 11; i++) {
@@ -612,9 +610,19 @@ function render() {
             for (var p=0; p<portalCount; p++) {
                 var match=true;
                 for (var psi=0; psi<partialSet.length && match; psi++) {
-                    if (CompareArrays(adjacency[partialSet[psi]][p], edge[points[psi]][points[partialSet.length]])) {
-                        match = false;
-                        break;
+                    if (psi == partialSet.length-1) {
+                        // next point in the actual glyph has to be precise
+                        if (CompareArrays(adjacency[partialSet[psi]][p], edge[points[psi]][points[partialSet.length]])) {
+                            match = false;
+                            break;
+                        }
+                    }
+                    else {
+                        // previous points can be looser
+                        if (CompareArrays(nearAdjacency[partialSet[psi]][p], edge[points[psi]][points[partialSet.length]])) {
+                            match = false;
+                            break;
+                        }
                     }
                 }
                 if (match) {
