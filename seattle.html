@@ -100,6 +100,9 @@ function findAdjacent(adjacent, precision, rise, run) {
                 var p0 = interceptMap[list][i];
                 for (var j=i+1; j<interceptMap[list].length; j++) {
                     var p1 = interceptMap[list][j];
+                    if (adjacent[p0][p1][0] != 0 && adjacent[p0][p1][1] != 0) {
+                        console.log(String(precision) + " isn't precise enough.");
+                    }
                     adjacent[p0][p1] = [rise,run];
                     adjacent[p1][p0] = [-rise,-run];
                 }
