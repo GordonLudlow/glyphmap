@@ -637,13 +637,13 @@ function render() {
                     }
                 }
                 if (match) {
-                    partialSet.push(p);
-                    if (partialSet.length < points.length) {
-                        stack.push(partialSet);
-                        partialSet.pop();
+                    var fullSet = partialSet.slice();
+                    fullSet.push(p);
+                    if (fullSet.length < points.length) {
+                        stack.push(fullSet);
                     }
                     else {
-                        // partialSet is a collection of points that work to draw the glyph
+                        // fullSet is a collection of points that work to draw the glyph
                         
                         // Make sure it isn't too big
                         var minLat = Number.MAX_VALUE;
@@ -651,25 +651,24 @@ function render() {
                         var maxLat = Number.NEGATIVE_INFINITY;
                         var maxLng = Number.NEGATIVE_INFINITY;
                         
-                        for (p in partialSet) {
-                            var lat = portal[partialSet[p]][0];
-                            var lng = portal[partialSet[p]][1];
+                        for (p in fullSet) {
+                            var lat = portal[fullSet[p]][0];
+                            var lng = portal[fullSet[p]][1];
                             if (lat < minLat) minLat = lat;
                             if (lat > maxLat) maxLat = lat;
                             if (lng < minLng) minLng = lng;
                             if (lng > maxLng) maxLng = lng;
                         }
                         if (maxLat - minLat > maxSize || maxLng - minLng > maxSize) {
-                            partialSet.pop();
                             continue;
                         }        
                         document.getElementById('status').innerHTML = '(' + (maxLat-minLat).toString() + ', ' + (maxLng-minLng).toString() + ')';
                         
-                        for (p in partialSet) {
-                            AddMarker(portal[partialSet[p]][0], portal[partialSet[p]][1]);  
+                        for (p in fullSet) {
+                            AddMarker(portal[fullSet[p]][0], portal[fullSet[p]][1]);  
                         } 
                         
-                        var linePoints = partialSet.map(function (item) {
+                        var linePoints = fullSet.map(function (item) {
                             return new google.maps.LatLng(portal[item][0], portal[item][1]);
                         });            
 
@@ -680,8 +679,6 @@ function render() {
                             strokeWeight: 2,
                             map: map
                         });   
-                        
-                        partialSet.pop();
                     }
                 }
             }
