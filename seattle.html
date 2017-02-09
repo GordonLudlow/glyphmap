@@ -617,6 +617,7 @@ function render() {
         }
         var minError = Number.MAX_VALUE;
         while (stack.length) {
+            console.log("stack length is now " + String(stack.length));
             var partialSet = stack.pop();
             for (var p=0; p<portalCount; p++) {
                 var match=true;
