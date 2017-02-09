@@ -100,11 +100,9 @@ function findAdjacent(adjacent, precision, rise, run) {
                 var p0 = interceptMap[list][i];
                 for (var j=i+1; j<interceptMap[list].length; j++) {
                     var p1 = interceptMap[list][j];
-                    if (adjacent[p0][p1][0] != 0 && adjacent[p0][p1][1] != 0) {
-                        console.log(String(precision) + " isn't precise enough.");
-                    }
-                    adjacent[p0][p1] = [rise,run];
-                    adjacent[p1][p0] = [-rise,-run];
+
+                    adjacent[p0][p1].push([rise,run]);
+                    adjacent[p1][p0].push([-rise,-run]);
                 }
             }
         }
@@ -140,6 +138,16 @@ function CompareArrays(a1, a2) {
     }       
     return 0;
 }
+
+function ArrayContainsArray(container, containee) {
+    for (var i=0; i<container.length; i++) {
+        if (!CompareArrays(container[i], containee)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 function AddMarker(lat, lng) {
     var mapLat = (lat + .001).toString();
     var mapLng = (lng - .001).toString();
@@ -179,7 +187,7 @@ function render() {
     while (adjacency.push([]) < portalCount);
     for (var p0=0; p0<portalCount; p0++) {
         for (var p1=0; p1<portalCount; p1++) {
-            adjacency[p0][p1] = [0,0];
+            adjacency[p0][p1] = [];
         }
     }
     var nearAdjacency = adjacency.slice(); // nearAdjacency is a less precise version of adjacency used for aligning points that don't have lines drawn between them
@@ -195,8 +203,8 @@ function render() {
         }
     }    
 
-    var adjacencyPrecision = 6;
-    var nearAdjacencyPrecision = 5;
+    var adjacencyPrecision = 5;
+    var nearAdjacencyPrecision = 3;
     findAdjacent(adjacency, adjacencyPrecision,   4,  7);
     findAdjacent(adjacency, adjacencyPrecision,  -4,  7);
     findAdjacent(adjacency, adjacencyPrecision,   1,  0);
@@ -564,13 +572,13 @@ function render() {
         var longest = Number.NEGATIVE_INFINITY;
         for (var p0=0; p0<portalCount; p0++) {
             for (var p1=0; p1<portalCount; p1++) {
-                if (!CompareArrays(adjacency[p0][p1], path[0])) {
+                if (ArrayContainsArray(adjacency[p0][p1], path[0])) {
                     // Make sure there's enough intermediate points
                     var intermediateCount = 0;
                     var intermediates = [];
                     for (var pi=0; pi<portalCount; pi++) {
-                        if (!CompareArrays(adjacency[p0][pi], path[0])
-                            && !CompareArrays(adjacency[pi][p1], path[0])) {
+                        if (ArrayContainsArray(adjacency[p0][pi], path[0])
+                            && ArrayContainsArray(adjacency[pi][p1], path[0])) {
                             intermediateCount++;
                             intermediates.push(pi);
                         }
@@ -602,7 +610,7 @@ function render() {
         var stack = [];
         for (var p0=0; p0<portalCount; p0++) {
             for (var p1=0; p1<portalCount; p1++) {
-                if (!CompareArrays(adjacency[p0][p1], edge[points[0]][points[1]])) {
+                if (ArrayContainsArray(adjacency[p0][p1], edge[points[0]][points[1]])) {
                     stack.push([p0,p1]);
                 }
             }
@@ -615,14 +623,14 @@ function render() {
                 for (var psi=0; psi<partialSet.length && match; psi++) {
                     if (psi == partialSet.length-1) {
                         // next point in the actual glyph has to be precise
-                        if (CompareArrays(adjacency[partialSet[psi]][p], edge[points[psi]][points[partialSet.length]])) {
+                        if (!ArrayContainsArray(adjacency[partialSet[psi]][p], edge[points[psi]][points[partialSet.length]])) {
                             match = false;
                             break;
                         }
                     }
                     else {
                         // previous points can be looser
-                        if (CompareArrays(nearAdjacency[partialSet[psi]][p], edge[points[psi]][points[partialSet.length]])) {
+                        if (!ArrayContainsArray(nearAdjacency[partialSet[psi]][p], edge[points[psi]][points[partialSet.length]])) {
                             match = false;
                             break;
                         }
@@ -654,149 +662,7 @@ function render() {
                 }
             }
         }
-    
-    
-    /*
-        var stack = [];
-        for (var p0=0; p0<portalCount; p0++) {
-            for (var p1=0; p1<portalCount; p1++) {
-                if (!CompareArrays(adjacency[p0][p1], path[0])) {
-                    stack.push([p0,p1]);
-                }
-            }
-        }
-        var minError = Number.MAX_VALUE;
-        while (stack.length) {
-            var partialPath = stack.pop();
-            var partialPathLength = partialPath.length;
-            for (var p=0; p<portalCount; p++) {
-                // If the adjacency of the point and the end of the path is the same as the adjacenct we want for the next point...
-                if (!CompareArrays(adjacency[partialPath[partialPathLength-1]][p], path[partialPathLength-1])) {
-                    var extendedPath = partialPath.slice();
-                    extendedPath.push(p);
-                    if (partialPathLength < path.length) {
-                        stack.push(extendedPath);
-                    }
-                    else {
-                        // Found full length path with the correct turns
-                        
-                        // Is it long enough?
-                        var intermediates = [];
-                        if (path.length < 5) {
-                            // The glyph itself doesn't have 6 points, are there extra itermediary points?
-                            var intermediateCount = 0;
-                            for (var epi=0; epi<partialPathLength;epi++) {
-                                for (var pi=0; pi<portalCount; pi++) {
-                                    if (!CompareArrays(adjacency[extendedPath[epi]][pi], path[epi])
-                                        && !CompareArrays(adjacency[pi][extendedPath[epi+1]], path[epi])) {
-                                        intermediateCount++;
-
-                                        intermediates.push(pi);
-                                   
-                                    }
-                                }
-                            }
-                            if (path.length + intermediateCount < 5) {
-                                continue;
-                            }
-                            //for (center in intermediateCenters) {
-                            //    var circle = new google.maps.Circle({
-                            //        strokeColor: '#FF0000',
-                            //        strokeOpacity: 0.8,
-                            //        strokeWeight: 2,
-                            //        fillColor: '#FF0000',
-                            //        fillOpacity: 0.35,
-                            //        map: map,
-                            //        center: intermediateCenters[center],
-                            //        radius: 30}); 
-                            //}                                
-                        }
-                        
-                        // Make sure it isn't too big
-                        var minLat = Number.MAX_VALUE;
-                        var minLng = Number.MAX_VALUE;
-                        var maxLat = Number.NEGATIVE_INFINITY;
-                        var maxLng = Number.NEGATIVE_INFINITY;
-                        
-                        for (var ppi=0;ppi<=partialPathLength;ppi++) {
-                            var lat = portal[extendedPath[ppi]][0];
-                            var lng = portal[extendedPath[ppi]][1];
-                            if (lat < minLat) minLat = lat;
-                            if (lat > maxLat) maxLat = lat;
-                            if (lng < minLng) minLng = lng;
-                            if (lng > maxLng) maxLng = lng;
-                        }
-                        if (maxLat - minLat > maxSize || maxLng - minLng > maxSize) {
-                            continue;
-                        }
-                        
-                        // Compare relative segment lengths
-                        
-                        // First, make sure we have all the squared distances calculated
-                        for (var ppi=0;ppi<partialPathLength;ppi++) {
-                            // find the dist between points if it's not in the sqDist cache
-                            if (!sqDist[extendedPath[ppi]][extendedPath[ppi+1]]) {
-                                var dlat = portal[extendedPath[ppi]][0] - portal[extendedPath[ppi+1]][0];
-                                var dlng = portal[extendedPath[ppi]][1] - portal[extendedPath[ppi+1]][1];
-                                sqDist[extendedPath[ppi]][extendedPath[ppi+1]] = dlat*dlat + dlng*dlng;
-                                dist[extendedPath[ppi]][extendedPath[ppi+1]] = Math.sqrt(sqDist[extendedPath[ppi]][extendedPath[ppi+1]]);
-                            }
-                        }
-                        
-                        // use the first segment's length as the ratio of pixels squared distance to lat,lng squared distance
-                        var ratio = dist[partialPath[0]][partialPath[1]] / pixelDist[0];
-                        var error = 0;
-                        for (var ppi=1;ppi<partialPathLength;ppi++) {
-                            var delta = Math.abs((pixelDist[ppi] * ratio) - dist[extendedPath[ppi]][extendedPath[ppi+1]]);
-                            error += delta;
-                        }
-                        if (error < minError) {
-                            minError = error;
-                            var bestPath = extendedPath.slice();
-                            var bestIntermediates = intermediates.slice();
-                            var bestSize = '(' + (maxLat-minLat).toString() + ', ' + (maxLng-minLng).toString() + ')';
-                        }
-                        //var linePoints = extendedPath.map(function (item) {
-                        //    return new google.maps.LatLng(portal[item][0], portal[item][1]);
-                        //});            
-
-                        //var polyLine = new google.maps.Polyline({
-                        //    path: linePoints,
-                        //    strokeColor: '#00FF00',
-                        //    strokeOpacity: 1.0,
-                        //    strokeWeight: 20,
-                        //    map: map
-                        //});                    
-                    }
-                }
-            }
-        }
-        */
     }
-    /*
-    if (!bestPath) return;
-    
-    var linePoints = bestPath.map(function (item) {
-        return new google.maps.LatLng(portal[item][0], portal[item][1]);
-    });            
-
-    var polyLine = new google.maps.Polyline({
-        path: linePoints,
-        strokeColor: '#FF0000',
-        strokeOpacity: 1.0,
-        strokeWeight: 2,
-        map: map
-    });
-
-    for (p in bestPath) {
-        AddMarker(portal[bestPath[p]][0], portal[bestPath[p]][1]);  
-    }    
-    for (p in bestIntermediates) {
-        AddMarker(portal[bestIntermediates[p]][0], portal[bestIntermediates[p]][1]);      
-    }        
-    
-    document.getElementById('status').innerHTML = bestSize;
-    */
 }
 
 function initializeMap() 
