@@ -203,8 +203,8 @@ function render() {
         }
     }    
 
-    var adjacencyPrecision = 5;
-    var nearAdjacencyPrecision = 3;
+    var adjacencyPrecision = document.getElementById("precision").value;;
+    var nearAdjacencyPrecision = document.getElementById("nearPrecision").value;;
     findAdjacent(adjacency, adjacencyPrecision,   4,  7);
     findAdjacent(adjacency, adjacencyPrecision,  -4,  7);
     findAdjacent(adjacency, adjacencyPrecision,   1,  0);
@@ -640,9 +640,31 @@ function render() {
                     partialSet.push(p);
                     if (partialSet.length < points.length) {
                         stack.push(partialSet);
+                        partialSet.pop();
                     }
                     else {
                         // partialSet is a collection of points that work to draw the glyph
+                        
+                        // Make sure it isn't too big
+                        var minLat = Number.MAX_VALUE;
+                        var minLng = Number.MAX_VALUE;
+                        var maxLat = Number.NEGATIVE_INFINITY;
+                        var maxLng = Number.NEGATIVE_INFINITY;
+                        
+                        for (p in partialSet) {
+                            var lat = portal[partialSet[p]][0];
+                            var lng = portal[partialSet[p]][1];
+                            if (lat < minLat) minLat = lat;
+                            if (lat > maxLat) maxLat = lat;
+                            if (lng < minLng) minLng = lng;
+                            if (lng > maxLng) maxLng = lng;
+                        }
+                        if (maxLat - minLat > maxSize || maxLng - minLng > maxSize) {
+                            partialSet.pop();
+                            continue;
+                        }        
+                        document.getElementById('status').innerHTML = '(' + (maxLat-minLat).toString() + ', ' + (maxLng-minLng).toString() + ')';
+                        
                         for (p in partialSet) {
                             AddMarker(portal[partialSet[p]][0], portal[partialSet[p]][1]);  
                         } 
@@ -658,6 +680,8 @@ function render() {
                             strokeWeight: 2,
                             map: map
                         });   
+                        
+                        partialSet.pop();
                     }
                 }
             }
@@ -1004,6 +1028,8 @@ src="http://maps.googleapis.com/maps/api/js?key=AIzaSyCyM0mrFrvnIbYkve4hWKY30cjV
     <option>You</option>  
 </select>
 Max size: <input id="maxSize" type="number" min="0" max="10" value="10" step="0.001" onchange="changeGlyph();">
+&nbsp; Precision of glyph points: <input id="precision" type="number" min="2" max="10" value="5" step="1" onchange="changeGlyph();">
+&nbsp; Precision of alignment points: <input id="nearPrecision" type="number" min="2" max="10" value="4" step="1" onchange="changeGlyph();">
 <br/>
 <span id=status> </span><br/>
 <span id=saveButton><button onclick="save()">Save</button></span><br/>
