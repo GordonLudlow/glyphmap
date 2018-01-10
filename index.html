@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<!--
+www.gordonludlow.com/glyphmap
+GlyphMap: A glyph on the map.  Simple field art.  An Ingress mission.
+Link from each portal to the previous to draw a glyph on the intel map.
+This finds them.
+An Ingress mission has to have at least 6 portals.  
+Most glyphs are less than 6 points so intervening points need to be included.
+-->
+<html>
+<head>
+<title>Glyph Map</title>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<style type="text/css">
+html { height: 100% }
+body { height: 100%; margin: 0; padding: 0 }
+</style>
+
+<script type="text/javascript">
+
+// Points in a glyph
+//
+//                     A
+// B                                       C
+//           D                   E
+//                     F
+//           G                   H
+// I                                       J
+//                     K
+//
+// 512x512 logo art coordinates
+// A 256,  72
+// B  72, 164
+// C 440, 164
+// D 164, 210
+// E 348, 210
+// F 256, 256
+// G 164, 302
+// H 348, 302
+// I  72, 348
+// J 440, 348
+// K 256, 438
+//
+
+
+// original smaller source art coordinates
+// A = (56,   0) => (14,  0)
+// B = (0,   32) => ( 0,  8)
+// C = (112, 32) => (28,  8)
+// D = (28,  48) => ( 7, 12)
+// E = (84,  48) => (21, 12)
+// F = (56,  64) => (14, 16)
+// G = (28,  80) => ( 7, 20)
+// H = (84,  80) => (21, 20)
+// I = (0,   96) => ( 0, 24)
+// J = (112, 96) => (28, 24)
+// K = (56, 128) => (14, 32)
+
+
+
+
+
+// Rise, run of angles between the points in a glyph
+// For slope consider y up, x right
+// Some of these ups might be wrong, but we'll only consider downs
+var up = [1,0];
+var down = [-1,0];
+var right = [0,1];
+var left = [0,-1];
+var downRight47 = [-4,7]; // ok
+var upLeft47 = [4,7];
+var upRight47 = [-4,7];    
+var downLeft47 = [-4,-7]; // ok
+var downRight12_7 = [-12,7]; //ok
+var upRight12_7 = [-12,7];
+var downLeft12_7 = [-12,-7]; // ok
+var upLeft12_7 = [12,7];
+var downRight20_7 = [-20,7]; // ok
+var upRight20_7 = [-20,7];
+var downLeft20_7 = [-20,-7]; // ok
+var upLeft20_7 = [20,7];    
+var downRight4_21 = [-4,21];
+var upRight4_21 = [-4,21];
+var downLeft4_21 = [-4,-21];
+var upLeft4_21 = [4,21];    
+
+var edge = [];
+var edgeDist = [];
+var edgeSlope = [];
+var portalDist = [];
+var portalSlope = [];
+for (let i = 0; i < 11; i++) {
+    edge[i] = [];
+    edgeDist[i] = [];
+    edgeSlope[i] = [];
+    for (let j = 0; j < 11; j++) {
+        edge[i][j] = [];
+    }
+}
+edge[0][1] = downLeft47; // A->B
+edgeDist[0][1] = Math.sqrt(14*14 + 8*8);
+edge[0][2] = downRight47;// A->C
+edgeDist[0][2] = Math.sqrt(14*14+8*8);
+edge[0][3] = downLeft12_7;//A->D
+edgeDist[0][3] = Math.sqrt(7*7 + 12*12);
+edge[0][4] = downRight12_7; // A->E
+edgeDist[0][4] = Math.sqrt(7*7 + 12*12);
+edge[0][5] = down; // A->F
+edgeDist[0][5] = Math.sqrt(16*16);
+edge[0][6] = downLeft20_7; // A->G
+edgeDist[0][6] = Math.sqrt(7*7 + 20*20);
+edge[0][7] = downRight20_7; // A->H
+edgeDist[0][7] = Math.sqrt(7*7 + 20*20);
+edge[0][8] = downLeft12_7;// A->I
+edgeDist[0][8] = Math.sqrt(14*14 + 24*24);
+edge[0][9] = downRight12_7;// A->J
+edgeDist[0][8] = Math.sqrt(14*14 + 24*24);
+edge[0][10] = down; // A->K
+edgeDist[0][10] = Math.sqrt(32*32);
+edge[1][2] = right; //B->C
+edgeDist[1][2] = Math.sqrt(28*28);
+edge[1][3] = downRight47; //B->D
+edgeDist[1][3] = Math.sqrt(7*7 + 4*4);
+edge[1][4] = downRight4_21; //B->E
+edgeDist[1][4] = Math.sqrt(21*21 + 4*4);
+edge[1][5] = downRight47; //B->F
+edgeDist[1][5] = Math.sqrt(14*14 + 8*8);
+edge[1][6] = downRight12_7; //B->G
+edgeDist[1][6] = Math.sqrt(7*7 + 12*12);
+edge[1][7] = downRight47; //B->H
+edgeDist[1][7] = Math.sqrt(21*21 + 12*12);
+edge[1][8] = down; //B->I
+edgeDist[1][8] = Math.sqrt(16*16);
+edge[1][9] = downRight47; //B->J
+edgeDist[1][9] = Math.sqrt(28*28 + 16*16);
+edge[1][10] = downRight12_7; //B->K
+edgeDist[1][10] = Math.sqrt(14*14 + 24*24);
+edge[2][3] = downLeft4_21; //C->D
+edgeDist[1][3] = Math.sqrt(21*21 + 4*4);
+edge[2][4] = downLeft47 ; //C->E
+edgeDist[1][4] = Math.sqrt(7*7+4*4);
+edge[2][5] = downLeft47; //C->F
+edgeDist[1][5] = Math.sqrt(14*14 + 8*8);
+edge[2][6] = downLeft47; //C->G
+edgeDist[1][6] = Math.sqrt(21*21 + 12*12);
+edge[2][7] = downLeft12_7; //C->H
+edgeDist[1][7] = Math.sqrt(7*7 + 12*12);
+edge[2][8] = downLeft47; //C->I
+edgeDist[1][8] = Math.sqrt(28*28 + 16*16);
+edge[2][9] = down; //C->J
+edgeDist[1][9] = Math.sqrt(16*16);
+edge[2][10] = downLeft12_7; //C->K
+edgeDist[1][10] = Math.sqrt(14*14 + 24*24);    
+edge[3][4] = right; //D->E
+edgeDist[3][4] = Math.sqrt(14*14);
+edge[3][5] = downRight47; //D->F
+edgeDist[3][5] = Math.sqrt(7*7 + 4*4);
+edge[3][6] = down; //D->G
+edgeDist[3][6] = Math.sqrt(8*8);
+edge[3][7] = downRight47; //D->H
+edgeDist[3][7] = Math.sqrt(14*14 + 8*8);
+edge[3][8] = downLeft12_7; //D->I
+edgeDist[3][8] = Math.sqrt(7*7 + 12*12);
+edge[3][9] = downRight47; //D->J
+edgeDist[3][9] = Math.sqrt(21*21 + 12*12);
+edge[3][10] = downRight20_7; //D->K
+edgeDist[3][10] = Math.sqrt(7*7 + 20*20); 
+edge[4][5] = downLeft47; //E->F
+edgeDist[4][5] = Math.sqrt(7*7 + 4*4);
+edge[4][6] = downLeft47; //E->G
+edgeDist[4][6] = Math.sqrt(14*14 + 8*8);
+edge[4][7] = down; //E->H
+edgeDist[4][7] = Math.sqrt(8*8);
+edge[4][8] = downLeft47; //E->I
+edgeDist[4][8] = Math.sqrt(21*21 + 12*12);
+edge[4][9] = downRight12_7; //E->J
+edgeDist[4][9] = Math.sqrt(7*7 + 12*12);
+edge[4][10] = downLeft20_7; //E->K
+edgeDist[4][10] = Math.sqrt(7*7 + 20*20); 
+edge[5][6] = downLeft47; //F->G
+edgeDist[5][6] = Math.sqrt(7*7 + 4*4);
+edge[5][7] = downRight47; //F->H
+edgeDist[5][7] = Math.sqrt(7*7 + 4*4);
+edge[5][8] = downLeft47; //F->I
+edgeDist[5][8] = Math.sqrt(14*14 + 8*8);
+edge[5][9] = downRight47; //F->J
+edgeDist[5][9] = Math.sqrt(14*14 + 8*8);
+edge[5][10] = down; //F->K
+edgeDist[5][10] = Math.sqrt(16*16); 
+edge[6][7] = right; //G->H
+edgeDist[6][7] = Math.sqrt(14*14);
+edge[6][8] = downLeft47; //G->I
+edgeDist[6][8] = Math.sqrt(7*7 + 4*4);
+edge[6][9] = downRight4_21; //G->J
+edgeDist[6][9] = Math.sqrt(21*21 + 4*4);
+edge[6][10] = downRight12_7; //G->K
+edgeDist[6][10] = Math.sqrt(7*7 + 12*12); 
+edge[7][8] = downLeft4_21; //H->I
+edgeDist[7][8] = Math.sqrt(21*21 + 4*4);
+edge[7][9] = downRight47; //H->J
+edgeDist[7][9] = Math.sqrt(7*7 + 4*4);
+edge[7][10] = downRight12_7; //H->K
+edgeDist[7][10] = Math.sqrt(7*7 + 12*12); 
+edge[8][9] = right; //I->J
+edgeDist[8][9] = Math.sqrt(28*28);
+edge[8][10] = downRight47; //I->K
+edgeDist[8][10] = Math.sqrt(14*14 + 8*8); 
+edge[9][10] = downLeft47; //J->K
+edgeDist[9][10] = Math.sqrt(14*14 + 8*8);
+
+// The back edge is the same distance and opposite direction of the foreward edge
+for (let i=0; i<10; i++) {
+    for (let j = 0; j<11; j++) {
+        if (edge[i][j].length > 0) {
+            // [i][j] was explicitly assigned above (or earlier in this loop)
+            edge[j][i][0] = -edge[i][j][0];
+            edge[j][i][1] = -edge[i][j][1];
+            edgeDist[j][i] = edgeDist[i][j];
+        }
+    }
+}
+
+// The slope is rise/run
+for  (let i=0; i<11; i++) {
+    for (let j=0; j<11; j++) {
+        if (i != j) {
+            edgeSlope[i][j] = edge[i][j][0] / edge[i][j][1];
+        }
+    }
+}
+
+var map;
+var mapInitialized = false;
+function initializeMap() 
+{
+    if (!mapInitialized)
+    {
+        // Default map options
+        var mapOptions = { center: new google.maps.LatLng(47.611714, -122.340707),
+                            zoom: 15,
+                            mapTypeId: google.maps.MapTypeId.ROADMAP };
+        
+        // Load cookies
+        var mapOptionsKey = "mapOptions=";
+        var glyphKey = "glyph=";
+        var maxSizeKey = "maxSize=";
+        var ca = document.cookie.split(';');
+        for(var i = 0; i <ca.length; i++) {
+            var c = ca[i].trim();
+            if (c.indexOf(mapOptionsKey) == 0) {
+                mapOptions = JSON.parse(c.substring(mapOptionsKey.length));
+            }
+            if (c.indexOf(glyphKey) == 0) {
+                document.getElementById("glyph").selectedIndex = JSON.parse(c.substring(glyphKey.length));
+            }
+            if (c.indexOf(maxSizeKey) == 0) {
+                document.getElementById("maxSize").value = JSON.parse(c.substring(maxSizeKey.length))
+            }
+        }        
+        
+        map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+        mapInitialized=true;
+
+        // Load the portal coordinates
+        // [{"title":"Title", "guid":"guid", "latlng":"lat,lng"},...]
+        $.ajaxSetup({
+            cache:false
+        });          
+        $.getJSON('seattle.json', function (data) {
+            portal = data;
+            for (let i=0; i<portal.length; i++) {
+                let latlngArray = portal[i].latlng.split(',');
+                let lat = parseFloat(latlngArray[0]);
+                let lng = parseFloat(latlngArray[1]);
+                portal[i].lat = lat;
+                portal[i].lng = lng;
+                var marker = new google.maps.Marker({
+                  position: new google.maps.LatLng(lat, lng),
+                  map: map,
+                  clickable: false,
+                  icon: {url: 'hum_reso_08.png', scaledSize: new google.maps.Size(20, 20), anchor: new google.maps.Point(10,10)}
+                });            
+            }
+            
+            // Sort the portals North to South
+            portal.sort(function(a, b) {
+                return b.lat - a.lat;
+            });
+  
+            // TODO: Move all the math and search to a web worker
+            // Find the distances and angles between every pair of points
+            for (let i=0; i<portal.length; i++) {
+                portalDist[i] = []; // probably don't care about distance
+                portalSlope[i] = [];                
+                for (let j=i+1; j<portal.length; j++) {
+                    let dLat = portal[i].lat - portal[j].lat;
+                    let dLng = portal[i].lng - portal[j].lng;
+                    portalDist[i][j] = Math.sqrt(dLat*dLat + dLng*dLng);
+                    portalSlope[i][j] = {slope: dLat/dLng};              
+                }
+            }
+
+            for (let i=0; i<portal.length; i++) {
+                for (let j=i+1; j<portal.length; j++) {
+                    portalDist[j][i] = portalDist[i][j];
+                    portalSlope[j][i] = portalSlope[i][j];
+                }
+            }
+            
+            let interestingSlope = [
+                Number.MAX_VALUE, // vertical       0
+                0,                // horizontal     1
+                 -4.0/ 7.0,       // downRight47    2
+                  4.0/ 7.0,       // downLeft47     3
+                -12.0/ 7.0,       // downRight12_7  4
+                 12.0/ 7.0,       // downLeft12_7   5
+                -20.0/ 7.0,       // downRight20_7  6
+                 20.0/ 7.0,       // downLeft20_7   7
+                 -4.0/21.0,       // downRight4_21  8
+                  4.0/21.0        // downLeft4_21   9
+            ];
+            for (let i=0; i<portal.length-1; i++) {
+                for (let j=i+1; j<portal.length; j++) {
+                    let leastError = Number.MAX_VALUE;
+                    let bestSlope = 0;
+                    if (portal[i].lng == portal[j].lng) {
+                        leastError = 0;
+                    }
+                    else {
+                        leastError = Math.abs(1/portalSlope[i][j].slope); // 1/slope near 0 is close to vertical
+                        for (let slope = 1; slope < interestingSlope.length; slope++) {
+                            let error =  Math.abs(portalSlope[i][j].slope - interestingSlope[slope]);
+                            if (error < leastError) {
+                                leastError = error;
+                                bestSlope = slope;
+                            }
+                        }
+                    }
+                    portalSlope[i][j].error = leastError;
+                    portalSlope[i][j].edge = bestSlope;
+                }
+            }
+            
+            // Considering only south links and only to the first point on the line:
+            // from A (0), we consider links to 1,2,3,4,5,6,7 (B-H)
+            // from B (1), we consider links to CDEGI 2,3,4,6,8
+            // from C (2), we consider links to DEHJ 3,4,7,9
+            // from D (3), we consider links to EFGIK 4,5,6,8,10
+            // from E (4), we consider links to FHJK 5,7,9,10
+            // from F (5), we consider links to GHK 6,7,10
+            // from G (6), we consider links to HIJK 7,8,9,10
+            // from H (7), we consider links to IJK 8,9,10
+            // from I (8), we consider links to JK 9,10
+            // from J (9), we consider links to K 10
+            
+            //         A  B  C  D  E  F  G  H  I  J  K
+            // A (0): -1  3  2  5  4  0  7  6 -1 -1 -1
+            // B (1): -1 -1  1  2  8 -1  4 -1  0 -1 -1
+            // C (2): -1 -1 -1  9  3 -1 -1  5 -1  0 -1
+            // D (3): -1 -1 -1 -1  1  2  0 -1  5 -1  6
+            // E (4): -1 -1 -1 -1 -1  3 -1  0 -1  4  7
+            // F (5): -1 -1 -1 -1 -1 -1  3  2 -1 -1  0
+            // G (6): -1 -1 -1 -1 -1 -1 -1  1  3  8  4
+            // H (7): -1 -1 -1 -1 -1 -1 -1 -1  9  2  4
+            // I (8): -1 -1 -1 -1 -1 -1 -1 -1 -1  1  2
+            // J (9): -1 -1 -1 -1 -1 -1 -1 -1 -1 -1  3
+            //
+            
+            // Full grid slopes for glyphs with 6 points
+            // We'll use a different set of slopes for glyps where we need intermediate points (somehow only using interesting slopes)
+            let gridSlopes = [];
+            gridSlopes[0] = [-1,  3,  2,  5,  4,  0,  7,  6, -1, -1, -1];
+            gridSlopes[1] = [-1, -1,  1,  2,  8, -1,  4, -1,  0, -1, -1];
+            gridSlopes[2] = [-1, -1, -1,  9,  3, -1, -1,  5, -1,  0, -1];
+            gridSlopes[3] = [-1, -1, -1, -1,  1,  2,  0, -1,  5, -1,  6];
+            gridSlopes[4] = [-1, -1, -1, -1, -1,  3, -1,  0, -1,  4,  7];
+            gridSlopes[5] = [-1, -1, -1, -1, -1, -1,  3,  2, -1, -1,  0];
+            gridSlopes[6] = [-1, -1, -1, -1, -1, -1, -1,  1,  3,  8,  4];
+            gridSlopes[7] = [-1, -1, -1, -1, -1, -1, -1, -1,  9,  2,  4];
+            gridSlopes[8] = [-1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  2];
+            gridSlopes[9] = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  3];
+            
+            let totalError = Number.MAX_VALUE;
+            let edgeError = [];
+            let portalIndex = [];
+            let bestPortals = [];
+            
+            // In downtown Seattle, there is a solution for:
+            // ABCDE
+            // ABCDEFGH
+            // ABCDEFGHI
+            // ABCIJK - but we need to consider lengths because it's really long.  or maybe add one in the middle.  yeah, that should fix it
+            // ABCFIJK is all plus a middle portal to keep it from stretching
+            // ABCDEGHIJ Legacy
+            // BCDEFGHIJ Idea
+            // ABCEFGIK Chaos
+            // ACDEFGJK Contemplate
+            // ADEFGHIJ Perspective
+            // BCDEGHIJ Portal 
+            // ACDEFJK Enlightenment            
+            // ADEGHIJ Shaper
+            // ADEFGK Resistance
+            // BCDEGH Civilization
+            // DEGHIJ Nature and Conflict
+            // CDEFGI Intelligence
+            // DEFGHI Again
+
+            // There is not a solution for: 
+            // ABCDEFGHIJK so can't do unbounded
+            // ABCGHIJK open all
+            // AEGKHD Harmony
+            // CFGHIK Capture
+            // DEFGHK Destiny
+
+
+
+
+
+
+          
+            let enabled = [true, true, true, true, true, false, true, true, true, true, false];
+            
+            for (let a=0; a < (enabled[0]?portal.length - 10:1); a++) {
+                portalIndex[0] = a;
+                for (let b=a+1; b < (enabled[1]?portal.length - 9:a+2); b++) {
+                    portalIndex[1] = b;
+                    if (!enabled[0] || !enabled[1]) {
+                        edgeError[0] = 0; 
+                    }
+                    else {
+                        if (gridSlopes[0][1] != portalSlope[a][b].edge) continue;
+                        edgeError[0] = portalSlope[a][b].error;
+                        if (edgeError[0] > totalError) {
+                            continue;
+                        }
+                    }
+                    for (let c=b+1; c < (enabled[2]?portal.length - 8:b+2); c++) {
+                        portalIndex[2] = c;
+                        if (!enabled[0] || !enabled[2]) {
+                            edgeError[1] = 0;
+                        }
+                        else {
+                            if (gridSlopes[0][2] != portalSlope[a][c].edge) continue;
+                            edgeError[1] = portalSlope[a][c].error;
+                        }
+
+                        if (!enabled[1] || !enabled[2]) {
+                            edgeError[2] = 0;
+                        }
+                        else {
+                            if (gridSlopes[1][2] != portalSlope[b][c].edge) continue;
+                            edgeError[2] = portalSlope[b][c].error;
+                        }
+                        if (edgeError[0]+edgeError[1]+edgeError[2] > totalError) {
+                            continue;
+                        }
+                        for (let d=c+1; d < (enabled[3]?portal.length - 7:c+2); d++) {
+                            portalIndex[3] = d;
+                            let valid=true;
+                            for (let edge=0;edge<3;edge++) {
+                                if (gridSlopes[edge][3] == -1) {
+                                    edgeError[3+edge] = 0;
+                                    continue;
+                                }
+                                if (!enabled[edge] || !enabled[3]) {
+                                    edgeError[3+edge] = 0;
+                                }
+                                else {
+                                    if (gridSlopes[edge][3] != portalSlope[portalIndex[edge]][d].edge) {
+                                        valid = false;
+                                        break;
+                                    }
+                                    edgeError[3+edge] = portalSlope[portalIndex[edge]][d].error;
+                                }
+                            }
+                            if (!valid) continue;
+                            let cumError = edgeError[0] + edgeError[1] + edgeError[2] + edgeError[3] + edgeError[4] + edgeError[5]; 
+                            if (cumError > totalError) continue;
+                            
+                            for (let e=d+1; e < (enabled[4]?portal.length - 6:d+2); e++) {
+                                portalIndex[4] = e;
+                                let valid=true;
+                                for (let edge=0;edge<4;edge++) {
+                                    if (gridSlopes[edge][4] == -1) {
+                                        edgeError[6+edge] = 0;
+                                        continue;
+                                    }
+                                    if (!enabled[edge] || !enabled[4]) {
+                                        edgeError[6+edge] = 0;
+                                    }
+                                    else {
+                                        if (gridSlopes[edge][4] != portalSlope[portalIndex[edge]][e].edge) {
+                                            valid = false;
+                                            break;
+                                        }
+                                        edgeError[6+edge] = portalSlope[portalIndex[edge]][e].error;
+                                    }
+                                }
+                                if (!valid) continue;
+                                edgeError.splice(10);
+                                cumError = edgeError.reduce(
+  function(total, num){ return total + num });
+                                if (cumError > totalError) continue;
+ 
+                                for (let f=e+1; f < (enabled[5]?portal.length - 5:e+2); f++) {                                
+                                    portalIndex[5] = f;
+                                    let valid=true;
+                                    for (let edge=0;edge<5;edge++) {
+                                        if (gridSlopes[edge][5] == -1) {
+                                            edgeError[10+edge] = 0;
+                                            continue;
+                                        }
+                                        if (!enabled[edge] || !enabled[5]) {
+                                            edgeError[10+edge] = 0;
+                                            continue;
+                                        }
+                                        if (gridSlopes[edge][5] != portalSlope[portalIndex[edge]][f].edge) {
+                                            valid = false;
+                                            break;
+                                        }
+                                        edgeError[10+edge] = portalSlope[portalIndex[edge]][f].error;
+                                    }
+                                    if (!valid) continue;
+                                    edgeError.splice(15);
+                                    cumError = edgeError.reduce(
+      function(total, num){ return total + num });
+                                    if (cumError > totalError) continue;
+      
+                                    for (let g=f+1; g < (enabled[6]?portal.length - 4:f+2); g++) {
+                                        portalIndex[6] = g;
+                                        let valid=true;
+                                        for (let edge=0;edge<6;edge++) {
+                                            if (gridSlopes[edge][6] == -1 || !enabled[edge] || !enabled[6]) {
+                                                edgeError[15+edge] = 0;
+                                                continue;
+                                            }
+                                            if (gridSlopes[edge][6] != portalSlope[portalIndex[edge]][g].edge) {
+                                                valid = false;
+                                                break;
+                                            }
+                                            edgeError[15+edge] = portalSlope[portalIndex[edge]][g].error;
+                                        }
+                                        if (!valid) continue;
+                                        edgeError.splice(21);
+                                        if (edgeError.reduce(
+          function(total, num){ return total + num }) > totalError) continue;
+          
+                                        for (let h=g+1; h < (enabled[7]?portal.length - 3:g+2); h++) {
+
+                                            portalIndex[7] = h;
+                                            let valid=true;
+                                            for (let edge=0;edge<7;edge++) {
+                                                if (gridSlopes[edge][7] == -1 || !enabled[edge] || !enabled[7]) {
+                                                    edgeError[21+edge] = 0;
+                                                    continue;
+                                                }
+                                                if (gridSlopes[edge][7] != portalSlope[portalIndex[edge]][h].edge) {
+                                                    valid = false;
+                                                    break;
+                                                }
+                                                edgeError[21+edge] = portalSlope[portalIndex[edge]][h].error;
+                                            }
+                                            if (!valid) continue;
+                                            edgeError.splice(28);
+                                            if (edgeError.reduce(
+              function(total, num){ return total + num }) > totalError) continue;
+
+                                            for (let i=h+1; i < (enabled[8]?portal.length - 2:h+2); i++) {
+                                            
+                                                portalIndex[8] = i;
+                                                let valid=true;
+                                                for (let edge=0;edge<8;edge++) {
+                                                    if (gridSlopes[edge][8] == -1 || !enabled[edge] || !enabled[8]) {
+                                                        edgeError[28+edge] = 0;
+                                                        continue;
+                                                    }
+                                                    if (gridSlopes[edge][8] != portalSlope[portalIndex[edge]][i].edge) {
+                                                        valid = false;
+                                                        break;
+                                                    }
+                                                    edgeError[28+edge] = portalSlope[portalIndex[edge]][i].error;
+                                                }
+                                                if (!valid) continue;
+                                                edgeError.splice(36);
+                                                if (edgeError.reduce(
+                  function(total, num){ return total + num }) > totalError) continue;                                            
+                                                for (let j=i+1; j < (enabled[9]?portal.length -1:i+2); j++) {
+
+                                                    portalIndex[9] = j;
+                                                    let valid=true;
+                                                    for (let edge=0;edge<9;edge++) {
+                                                        if (gridSlopes[edge][9] == -1 || !enabled[edge] || !enabled[9]) {
+                                                            edgeError[36+edge] = 0;
+                                                            continue;
+                                                        }
+                                                        if (gridSlopes[edge][9] != portalSlope[portalIndex[edge]][j].edge) {
+                                                            valid = false;
+                                                            break;
+                                                        }
+                                                        edgeError[36+edge] = portalSlope[portalIndex[edge]][j].error;
+                                                    }
+                                                    if (!valid) continue;
+                                                    edgeError.splice(45);
+                                                    if (edgeError.reduce(
+                      function(total, num){ return total + num }) > totalError) continue;
+                                                
+                                                    for (let k=j+1; k < (enabled[10]?portal.length:j+2); k++) {
+                                                        
+                                                        portalIndex[10] = k;
+                                                        let valid=true;
+                                                        for (let edge=0;edge<10;edge++) {
+                                                            if (gridSlopes[edge][10] == -1 || !enabled[edge] || !enabled[10]) {
+                                                                edgeError[45+edge] = 0;
+                                                                continue;
+                                                            }
+                                                            if (gridSlopes[edge][10] != portalSlope[portalIndex[edge]][k].edge) {
+                                                                valid = false;
+                                                                break;
+                                                            }
+                                                            edgeError[45+edge] = portalSlope[portalIndex[edge]][k].error;
+                                                        }
+                                                        if (!valid) continue;
+                                                        let cumError = edgeError.reduce(
+                          function(total, num){ return total + num });
+                                                        if (cumError > totalError) continue;
+
+                                                        // We have a candidate!  And if more than one, the best candidate!
+                                                        totalError = cumError; 
+                                                        bestPortals = portalIndex.slice();
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!bestPortals.length) {
+                alert("No solution");
+            }
+            
+            let lineColors = [
+            '', // ->A whatever
+            '#FF0000', // ->B red
+            '#0000FF', // ->C blue
+            '#00FF00', // ->D green
+            '#000000', // ->E black
+            '#FFFFFF', // ->F white
+            '#FF00FF', // ->G purple
+            '#00FFFF', // ->H cyan
+            '#FFFF00', // ->I yellow
+            '#800000', // ->J maroon
+            '#000080'  // ->K navy blue
+            ];
+            for (let from=0; from<bestPortals.length-1; from++) {
+                if (!enabled[from]) continue;
+                for (let to=from+1; to<bestPortals.length;to++) {
+                    if (!enabled[to]) continue;
+                    let polyLine = new google.maps.Polyline({
+                        path: [new google.maps.LatLng(portal[bestPortals[from]]),
+                               new google.maps.LatLng(portal[bestPortals[to]])],
+                        strokeColor: lineColors[to],
+                        strokeOpacity: 1.0,
+                        strokeWeight: 2,
+                        map: map
+                    });
+                }
+            }
+            for (let p=0;p<bestPortals.length; p++) {
+                if (!enabled[p]) continue;
+                let port = portal[bestPortals[p]];
+                let marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(port),
+                    map: map,
+                    clickable: false,
+                    icon: {url: 'circle.png', scaledSize: new google.maps.Size(20, 20), anchor: new google.maps.Point(10,10)}
+                });
+                console.log(port.title + " " + port.latlng);
+            }
+                        
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) { 
+            console.log('getJSON request failed! ' + textStatus); 
+            console.log("incoming Text " + jqXHR.responseText);
+        });
+    } 
+}
+    
+</script>
+</head>
+
+<body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script>
+    $.getJSON('apikey.json', function (data) {
+        var s = document.createElement("script");
+        s.type = "text/javascript";
+        s.src = "http://maps.googleapis.com/maps/api/js?key=" + data.key + "&callback=initializeMap";
+        $("head").append(s);
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) { 
+        console.log('getJSON request failed! ' + textStatus); 
+        console.log("incoming Text " + jqXHR.responseText);
+    });
+</script>
+<div id="map_canvas" style="width:100%; height:90%"></div>
+</body>
+</html>
+<!--
+Seattle Glyphs
+ALL
+Glyph Seattle:  All
+Link each portal to the previous to draw a field art glyph on the intel map.  From the last portal, link to the first to complete the glyph.
+UW Medicine Research 47.624227,-122.339898
+Hiawatha and the Bears 47.619208,-122.331024
+Basalt Rockery 47.611101,-122.330849
+Copperworks Distillery 47.605979,-122.339789
+Circle Consentric Mosaic 47.611104,-122.348652
+Fisher Plaza Fountain 47.619375,-122.348717
+
+SHAPER
+Metal Flowers 47.607032,-122.339199
+Benaroya Hall 47.608296,-122.336738
+Sewing Machine Wall 47.611497,-122.336593
+Gethsemane Statue 47.615711,-122.334131
+Juvonen Painting 47.611239,-122.33148
+Flower Fountain 47.608253,-122.331598
+Refreshing Fountain  47.606975,-122.328972
+
+CIVILIZATION
+CApitol 0081 47.624096,-122.329053
+Big Foot Yeti 47.62012,-122.33609
+Question Mark Art 47.611672,-122.336258
+Park Benches 47.611881,-122.349723
+Glowing Pods 47.620325,-122.349769
+D Line - Queen Anne Ave N & W Mercer St  47.62425,-122.356845
+
+NATURE
+Clay Street Fractal Mosaic 47.615857,-122.35201
+Cedar Bear 47.618429,-122.347366
+Kimsooja Installation 47.624008,-122.347252
+Zipcar-525 Westlake Avenue N. 47.623893,-122.338733
+Row of Boats 47.618416,-122.338867
+Gethsemane Statue 47.615711,-122.334131
+
+CONFLICT (same portals as NATURE (different order), do them in the other direction so the missions don't start on the same portal)
+Gethsemane Statue 47.615711,-122.334131
+Zipcar-525 Westlake Avenue N. 47.623893,-122.338733
+Row of Boats 47.618416,-122.338867
+Cedar Bear 47.618429,-122.347366
+Kimsooja Installation 47.624008,-122.347252
+Clay Street Fractal Mosaic 47.615857,-122.35201
+
+CHAOS
+Bell Street Pier Weather Vane 47.609942,-122.346396
+Lundeberg Derby 47.614845,-122.349211
+Petra Mediterranean Bistro 47.616679,-122.346408
+Pink Elephant Car Wash 47.618402,-122.343426
+Seattle Unity Church 47.619937,-122.34092
+Local Roots 47.623224,-122.34631
+Laurie B Oki Scene Gallery  47.620115,-122.352355
+Recycled Flowers 47.613278,-122.351879
+
+IDEA
+Electrical Box Monster 47.613272,-122.344157
+Mojo the Coho 47.610872,-122.34839
+Black Lightning 47.620454,-122.348365
+City University of Seattle 47.617811,-122.344435
+TanakaSan Railing Mural 47.615459,-122.340479
+Pacific Sunrise 47.613217,-122.335884
+Yomiuri Shimbun Bell 47.610765,-122.331616
+Alley 24 History  47.620263,-122.331574
+Simple Math 47.617714,-122.335865
+
+CONTEMPLATE
+Arched Fountains 47.621058,-122.340311
+Cornish Spire of Light 47.617861,-122.334516
+Ad Astra Per As Pera 47.610889,-122.334398
+Water Front Info 47.607351,-122.340416
+Alexander Graham Bell's Invention 47.612443,-122.34333
+Dos Amigos 47.616112,-122.343504
+The Giant Rooster 47.614501,-122.340255
+The Yuck Bus Mural  47.616045,-122.337356
+
+RESISTANCE
+My Lollipop Rocks 47.610247,-122.341204
+The forge Lounge  47.603314,-122.337128
+Compass of Seattle 47.61265,-122.337215
+Terry Avenue Tram Station  47.621366,-122.337256
+Top Pot Doughnuts 47.615057,-122.341238
+Saley 47.614553,-122.333244
+
+PORTAL
+1st National Bank Building 47.618649,-122.345508
+Denny Fountain 47.616445,-122.341543
+Gene Repair 47.616065,-122.335037
+Not All Who Wander Are Lost - To Do Is To Be 47.618431,-122.331099
+Waterfall in the Park 47.609324,-122.331203
+Dragon Ship 47.611595,-122.335067
+The Moore Theater 47.611709,-122.341482
+The Great White Fleet Pier 47.609483,-122.345586
+
+INTELLIGENCE
+Japanese Cherry Trees 47.611712,-122.349465
+Gyro Jack 47.6145,-122.344816
+EMP Museum Administration Offices 47.619505,-122.344844
+Bekin Presents Bus Stop Mural 47.616909,-122.340374
+13 Coins 47.619484,-122.335949
+Plant Bay 47.62209,-122.331608
+
+ABANDON
+Tribal Spear 47.609296,-122.341926
+Wire Mesh Leaves 47.614944,-122.351631
+Davenport Crest. 47.617714,-122.346854
+Good Dog Codi 47.620391,-122.342206
+Club Flowers 47.6234,-122.337054
+Beacon, Cloud and Toto by Jamie 47.623904,-122.33614
+
+PERSPECTIVE
+Metal Flowers 47.607032,-122.339199
+Benaroya Hall 47.608296,-122.336738
+WAC Gargoyles 47.609936,-122.333816
+Juvonen Painting 47.611239,-122.33148
+Gethsemane Statue 47.615711,-122.334131
+Sewing Machine Wall 47.611497,-122.336593
+Flower Fountain 47.608253,-122.331598
+Refreshing Fountain  47.606975,-122.328972
+
+AGAIN
+Horse Sculpture 47.6141,-122.335697
+13 Coins 47.619484,-122.335949
+Bekin Presents Bus Stop Mural 47.616909,-122.340374
+Gyro Jack 47.6145,-122.344816
+EMP Museum Administration Offices 47.619505,-122.344844
+Japanese Cherry Trees 47.611712,-122.349465
+
+ENLIGHTENMENT
+Artillery Shell 47.603959,-122.339215
+Headless Loggers 47.60905,-122.330808
+Orion Center 47.618368,-122.330664
+Lake Union Merging With Nature 47.623279,-122.339249
+Dos Amigos 47.616112,-122.343504
+Killer Whale 47.613677,-122.339398
+Gene Repair 47.616065,-122.335037
+
+LEGACY
+Pike Place Market Community History 47.610233,-122.343456
+Belltown Sign 47.611904,-122.34029
+TanakaSan Railing Mural 47.615459,-122.340479
+Elephant Car Wash 47.617682,-122.343447
+Boren Ave Upper Plaza  47.621335,-122.336992
+Plea for a Home Mural 47.617428,-122.330614
+Mt Rainier Mural 47.615424,-122.333846
+Video Game Mural 47.611861,-122.333765
+Exeter House Plaque 47.609888,-122.330576
+-->
