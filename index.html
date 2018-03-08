@@ -43,6 +43,7 @@ body { height: 100%; margin: 0; padding: 0 }
 //
 
 
+
 // original smaller source art coordinates
 // A = (56,   0) => (14,  0)
 // B = (0,   32) => ( 0,  8)
@@ -274,12 +275,19 @@ function initializeMap()
                 let lng = parseFloat(latlngArray[1]);
                 portal[i].lat = lat;
                 portal[i].lng = lng;
-                var marker = new google.maps.Marker({
+                
+                let marker = new google.maps.Marker({
                   position: new google.maps.LatLng(lat, lng),
                   map: map,
-                  clickable: false,
-                  icon: {url: 'hum_reso_08.png', scaledSize: new google.maps.Size(20, 20), anchor: new google.maps.Point(10,10)}
-                });            
+                  icon: {url: 'hum_reso_08.png', scaledSize: new google.maps.Size(20, 20), anchor: new google.maps.Point(10,10)},
+                  title: portal[i].title + " " + portal[i].latlng
+                });
+                let infoWindow = new google.maps.InfoWindow({
+                    content: portal[i].title + " " + portal[i].latlng
+                });
+                google.maps.event.addListener(marker, 'click', function () {
+                    infoWindow.open(map, marker);
+                });                
             }
             
             // Sort the portals North to South
@@ -319,6 +327,7 @@ function initializeMap()
                  -4.0/21.0,       // downRight4_21  8
                   4.0/21.0        // downLeft4_21   9
             ];
+
             for (let i=0; i<portal.length-1; i++) {
                 for (let j=i+1; j<portal.length; j++) {
                     let leastError = Number.MAX_VALUE;
@@ -361,11 +370,19 @@ function initializeMap()
             // E (4): -1 -1 -1 -1 -1  3 -1  0 -1  4  7
             // F (5): -1 -1 -1 -1 -1 -1  3  2 -1 -1  0
             // G (6): -1 -1 -1 -1 -1 -1 -1  1  3  8  4
-            // H (7): -1 -1 -1 -1 -1 -1 -1 -1  9  2  4
+            // H (7): -1 -1 -1 -1 -1 -1 -1 -1  9  2  5
             // I (8): -1 -1 -1 -1 -1 -1 -1 -1 -1  1  2
             // J (9): -1 -1 -1 -1 -1 -1 -1 -1 -1 -1  3
             //
-            
+//
+//                     A
+// B                                       C
+//           D                   E
+//                     F
+//           G                   H
+// I                                       J
+//                     K
+//            
             // Full grid slopes for glyphs with 6 points
             // We'll use a different set of slopes for glyps where we need intermediate points (somehow only using interesting slopes)
             let gridSlopes = [];
@@ -376,7 +393,7 @@ function initializeMap()
             gridSlopes[4] = [-1, -1, -1, -1, -1,  3, -1,  0, -1,  4,  7];
             gridSlopes[5] = [-1, -1, -1, -1, -1, -1,  3,  2, -1, -1,  0];
             gridSlopes[6] = [-1, -1, -1, -1, -1, -1, -1,  1,  3,  8,  4];
-            gridSlopes[7] = [-1, -1, -1, -1, -1, -1, -1, -1,  9,  2,  4];
+            gridSlopes[7] = [-1, -1, -1, -1, -1, -1, -1, -1,  9,  2,  5];
             gridSlopes[8] = [-1, -1, -1, -1, -1, -1, -1, -1, -1,  1,  2];
             gridSlopes[9] = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  3];
             
@@ -385,41 +402,134 @@ function initializeMap()
             let portalIndex = [];
             let bestPortals = [];
             
-            // In downtown Seattle, there is a solution for:
-            // ABCDE
-            // ABCDEFGH
-            // ABCDEFGHI
-            // ABCIJK - but we need to consider lengths because it's really long.  or maybe add one in the middle.  yeah, that should fix it
-            // ABCFIJK is all plus a middle portal to keep it from stretching
-            // ABCDEGHIJ Legacy
-            // BCDEFGHIJ Idea
-            // ABCEFGIK Chaos
-            // ACDEFGJK Contemplate
-            // ADEFGHIJ Perspective
-            // BCDEGHIJ Portal 
-            // ACDEFJK Enlightenment            
-            // ADEGHIJ Shaper
-            // ADEFGK Resistance
-            // BCDEGH Civilization
-            // DEGHIJ Nature and Conflict
-            // CDEFGI Intelligence
-            // DEFGHI Again
-
             // There is not a solution for: 
             // ABCDEFGHIJK so can't do unbounded
             // ABCGHIJK open all
-            // AEGKHD Harmony
-            // CFGHIK Capture
-            // DEFGHK Destiny
+            // DEIJK doesn't work
+            // IJK works
+            // DIJK works
+            // EIJK works
+            // DEJ works but has a lot of error, it's elongated.  The data looks right though.
 
-
-
-
-
-
-          
-            let enabled = [true, true, true, true, true, false, true, true, true, true, false];
+            // The resistance glyph has an instersection that isn't a 
+            // grid point, to it needs trickery to make things work out.
+            // coopt B as the intersection point on AF and DE
+            /*
+            for (let b=0; b<10;b++) {
+                gridSlopes[b][1] = -1;
+                gridSlopes[1][b] = -1;
+            }
+            //AF
+            gridSlopes[1][0] = 0;
+            gridSlopes[0][1] = 0;
+            gridSlopes[5][1] = 0;
+            gridSlopes[1][5] = 0;
+            //DE
+            gridSlopes[1][3] = 1;
+            gridSlopes[3][1] = 1;
+            gridSlopes[4][1] = 1;
+            gridSlopes[1][4] = 1;
+            */
             
+            /*
+// Advance ADI+3, drawn IDA   
+// B(1)
+            for (let b=0; b<10;b++) {
+                gridSlopes[b][1] = -1;
+                gridSlopes[1][b] = -1;
+            }
+            gridSlopes[1][10] = -1;
+
+            gridSlopes[1][0] = 5;
+            gridSlopes[1][3] = 5;
+            gridSlopes[1][8] = 5;
+            gridSlopes[0][1] = 5;
+            gridSlopes[3][1] = 5;
+            gridSlopes[8][1] = 5;
+
+// C(2)            
+            for (let b=0; b<10;b++) {
+                gridSlopes[b][2] = -1;
+                gridSlopes[2][b] = -1;
+            }
+            gridSlopes[2][10] = -1;
+
+            gridSlopes[2][0] = 5;
+            gridSlopes[2][3] = 5;
+            gridSlopes[2][8] = 5;
+            gridSlopes[2][1] = 5;
+            gridSlopes[0][2] = 5;
+            gridSlopes[3][2] = 5;
+            gridSlopes[8][2] = 5;
+            gridSlopes[1][2] = 5;
+            
+// E(4)
+            for (let b=0; b<10;b++) {
+                gridSlopes[b][4] = -1;
+                gridSlopes[4][b] = -1;
+            }
+            gridSlopes[4][10] = -1;
+
+            gridSlopes[4][0] = 5;
+            gridSlopes[4][3] = 5;
+            gridSlopes[4][8] = 5;
+            gridSlopes[4][1] = 5;
+            gridSlopes[4][2] = 5;
+            gridSlopes[0][4] = 5;
+            gridSlopes[3][4] = 5;
+            gridSlopes[8][4] = 5;
+            gridSlopes[1][4] = 5;
+            gridSlopes[2][4] = 5;
+            */
+            
+// Extra A->F point using B
+/*
+            for (let b=0; b<10;b++) {
+                gridSlopes[b][1] = -1;
+                gridSlopes[1][b] = -1;
+            }
+            gridSlopes[1][10] = -1;
+
+            gridSlopes[1][0] = 0;
+            gridSlopes[1][5] = 0;
+            gridSlopes[0][1] = 0;
+            gridSlopes[5][1] = 0;
+*/
+
+/*
+    //Simple GH plus extra fake ABCD, or just 6 points, ABCDEF all fake
+    for (extra=0; extra<6; extra++) {
+        for (let b=0; b<10;b++) {
+            gridSlopes[b][extra] = -1;
+            gridSlopes[extra][b] = -1;
+        }
+        gridSlopes[extra][10] = -1;    
+    }
+    for (i=0;i<5;i++) {
+        for (j=i+1; j<6;j++) {
+            gridSlopes[i][j] = 1;  
+        }
+    }
+*/
+/*
+Improve
+*/
+     
+                              //A
+            let enabled = [   false,
+            // B                                   C            
+            false,                                 true,
+                     // D                 E            
+                     true,              true,
+                              // F                     
+                              false,
+                     // G                 H                              
+                     true,              true,
+            // I                                    J                     
+            false,                                 false,
+                              // K            
+                              false];
+
             for (let a=0; a < (enabled[0]?portal.length - 10:1); a++) {
                 portalIndex[0] = a;
                 for (let b=a+1; b < (enabled[1]?portal.length - 9:a+2); b++) {
@@ -643,7 +753,7 @@ function initializeMap()
                 alert("No solution");
             }
             
-            let lineColors = [
+            /*let lineColors = [
             '', // ->A whatever
             '#FF0000', // ->B red
             '#0000FF', // ->C blue
@@ -655,7 +765,7 @@ function initializeMap()
             '#FFFF00', // ->I yellow
             '#800000', // ->J maroon
             '#000080'  // ->K navy blue
-            ];
+            ];*/
             for (let from=0; from<bestPortals.length-1; from++) {
                 if (!enabled[from]) continue;
                 for (let to=from+1; to<bestPortals.length;to++) {
@@ -663,7 +773,7 @@ function initializeMap()
                     let polyLine = new google.maps.Polyline({
                         path: [new google.maps.LatLng(portal[bestPortals[from]]),
                                new google.maps.LatLng(portal[bestPortals[to]])],
-                        strokeColor: lineColors[to],
+                        strokeColor: '#000000',//lineColors[to],
                         strokeOpacity: 1.0,
                         strokeWeight: 2,
                         map: map
@@ -786,14 +896,6 @@ Dos Amigos 47.616112,-122.343504
 The Giant Rooster 47.614501,-122.340255
 The Yuck Bus Mural  47.616045,-122.337356
 
-RESISTANCE
-My Lollipop Rocks 47.610247,-122.341204
-The forge Lounge  47.603314,-122.337128
-Compass of Seattle 47.61265,-122.337215
-Terry Avenue Tram Station  47.621366,-122.337256
-Top Pot Doughnuts 47.615057,-122.341238
-Saley 47.614553,-122.333244
-
 PORTAL
 1st National Bank Building 47.618649,-122.345508
 Denny Fountain 47.616445,-122.341543
@@ -857,4 +959,906 @@ Plea for a Home Mural 47.617428,-122.330614
 Mt Rainier Mural 47.615424,-122.333846
 Video Game Mural 47.611861,-122.333765
 Exeter House Plaque 47.609888,-122.330576
+
+Attack
+Cowboy Stain Glass Seattle Waterfront 47.606303,-122.342252
+Seattle Salmon 47.605903,-122.342493
+Pike Place Market 47.608796,-122.340789
+Seattle Precinct Stones 47.615871,-122.336623
+Plymouth  Church, United Church of Christ 47.608495,-122.332212
+Sun Princess 47.606065,-122.33092
+
+Defend
+KOMO Plaza 47.618737,-122.347926
+Space Needle Metal Art 47.614515,-122.345444
+Shorty's 47.613833,-122.345058
+Clark Kent 47.602776,-122.338526
+Japanese Zelkova 47.613548,-122.332244
+El Corazon Mural 47.618694,-122.329266
+
+Truth
+Denny Fountain 47.616445,-122.341543
+Monorail Man (aka Teainus Prime ) 47.621344,-122.349821
+Park Benches 47.611881,-122.349723
+The Center of the City 47.6213,-122.333099
+Washington State Convention & Trade Center 47.61157,-122.333005
+Pacific Sunrise 47.613217,-122.335884
+
+Lie
+Park Benches 47.611881,-122.349723
+Monorail Man (aka Teainus Prime ) 47.621344,-122.349821
+Denny Fountain 47.616445,-122.341543
+Washington State Convention & Trade Center 47.61157,-122.333005
+The Center of the City 47.6213,-122.333099
+Royal Palace Bar and Grill Indian Cuisine 47.62068,-122.334181 
+
+Create
+Sail Away 47.6125,-122.350797
+Western and Battery Globe 47.613637,-122.348807
+Flower Chandelier 47.61781,-122.341565
+Discovery Bioswale 47.619457,-122.338682
+Seattle Life Mural 47.617988,-122.341261
+Wall Art  47.623047,-122.332455
+
+Destroy
+Pier 86 Grain Terminal 47.624214,-122.368478
+OSP Sky Landscape 47.61713,-122.356056
+Olympus Pagoda 47.615765,-122.353674
+Keep The Market 47.609232,-122.342256
+Post Alley Park 47.608,-122.340099
+Native American Relief Sculpture 47.603964,-122.333042            
+
+Pure
+// Pure AEFH drawn AFHEF
+A Connectivity 47.620548,-122.336028
+William Volker Building 47.618068,-122.336031
+F(2 keys) Poetry Chair 47.60636,-122.336074
+H Reaching Clouds 47.602884,-122.329842\
+E Confluence 47.609936,-122.329813
+3rd Ave. Wall Reliefs 47.60695,-122.33507
+
+Resistance (corrected)
+// ADEFGK Resistance, B instead of F
+//GKBADE no F
+G(index):722 Doyle Building 47.610085,-122.340061
+K(index):722 Torch Statue 47.604178,-122.336 K->G
+hack 3 B(index):722 Honorable Fountain 47.614982,-122.336119 B->K
+A Leaves 47.621555,-122.336075 A->B
+D(index):722 Jazz Alley Reserved Parking 47.614911,-122.339822 D->A, D->B
+E(index):722 City of Seattle 1869 Seal 47.614722,-122.332189 E->B
+
+// Impure drawn AFGDF, ADFG plus 2 bonus points
+A Spider Manhole 47.624797,-122.335393
+F(index):726 City Centre 47.610614,-122.335194
+G(index):726 Ton of Gold 47.606915,-122.34165
+The Pike Pub 47.608063,-122.341651
+D(index):726 Cinerama Mural 47.614124,-122.341601
+William J Duchek Plaque 47.611264,-122.336362
+
+// together IGFED(F) plus one
+I (index):734 Glass Mural 47.610638,-122.346938
+G(index):734 Howard Garnitz - He & She 47.613755,-122.34167
+2 keysF(index):734 Beebe and Runyan 47.616858,-122.33628
+E(index):734 Old Photographs 47.61975,-122.331606
+Seattle Times 47.619793,-122.334506
+D Denny Park Lutheran Church 47.619832,-122.341558
+
+Adapt BFGH+2 drawn BGFH
+B Mural By the Parking Garage 47.620816,-122.354779
+Leaves in the Wind 47.614359,-122.351004
+G(index):734 Japanese Cherry Trees 47.611712,-122.349465
+F(index):734 Chicken Wall at Wexley 47.615771,-122.34239
+Santa's Workshop 47.61205,-122.335845
+H(index):734 Dragon Ship 47.611595,-122.335067     
+
+Advance
+(index):785 William Biederman Pavilion  47.60709,-122.339823
+(index):785 Century Square Clock 47.610992,-122.337527
+(index):785 Horse Sculpture 47.6141,-122.335697
+(index):785 Smooth Sailing Ahead 47.615737,-122.334765
+(index):785 Immanuel Lutheran Church, Seat 47.620721,-122.331834
+What do our Raindrops Pick up Along Their Path to the Puget Sound 47.62304,-122.330507
+
+//Answer drawn DEHF+2
+// DEFH
+D Paddleball 47.621174,-122.362067
+Focus 47.621179,-122.353559
+Labyrinth 47.621147,-122.338596
+E (index):786 Sidewalk Photos 47.621142,-122.330592
+H (index):786 Farming Mural 47.603326,-122.330583            
+F (index):786 Horsing Around 47.612166,-122.346226
+(Internet error - check to make sure it worked)
+
+// Avoid drawn BAECJ+1
+//             ABCEJ
+B(index):786 OSP Steely Determination 47.617293,-122.35693
+A Amazing Maze 47.621772,-122.348939
+E(index):786 Belltown Sidewalk Compass 47.614925,-122.345005
+C(index):786 The Hurricane Cafe 47.617291,-122.340989
+Sitting Pig Bank 47.608449,-122.341026
+J(index):786 Sea Sheppard Gallery Whale Mural 47.608069,-122.341027
+
+            // Barrier ABFHJ+1
+            //
+Denny Park Lutheran Church 47.619832,-122.341558
+(index):797 Flower Chandelier 47.61781,-122.341565
+Denny Fountain 47.616445,-122.341543
+(index):797 Post Alley 47.609674,-122.341553
+(index):797 Stewed With Love 47.607146,-122.337111
+(index):797 Flower Bear Mural 47.603507,-122.330789    
+
+            // Path ABFGI
+(index):797 Seattle Aquarium Wave Wall Sculpture  47.604712,-122.339607
+Dupen Bronze Relief Sculptures 47.606445,-122.336584
+(index):797 Abstract Sculpture 47.607052,-122.335505
+(index):797 Exeter House Plaque 47.609888,-122.330576
+(index):797 Washington State Convention Center 47.61261,-122.330587
+            Sidewalk Photos 47.621142,-122.330592
+        
+// begin drawn AGKH+2 
+// AGHK
+A Paddy Coyne's Puppy Metal Structure 47.620891,-122.333322
+Steel Cascade 47.61866,-122.334106
+G(index):800 Human Spirit 47.608536,-122.337653
+Kristopher Kime 47.601771,-122.33374
+K(index):800 Seattle's First Parking Station 47.600972,-122.333271
+H(index):800 First Presbyterian Church Seattle 47.608298,-122.328965
+
+// End drawn AFKHCA, ACFHK+1
+Woodpile 47.620785,-122.336033
+F(index):798 Senso Unico Arch Mural  47.613586,-122.335524
+K(index):798 Abstract Sculpture 47.607052,-122.335505
+H(index):798 Dip Tip Dip Sculpture 47.611936,-122.332698
+C(index):798 Spruce St Bus Stop Mural  47.617692,-122.32935
+ALeaves 47.621555,-122.336075
+
+// Human DEGHK, drawn DEHKG
+E(index):805 Beacon, Cloud and Toto by Jamie 47.623904,-122.33614
+H(index):805 Beebe and Runyan 47.616858,-122.33628
+K(index):805 Cowboy Stain Glass Seattle Waterfront 47.606303,-122.342252
+G(index):805 Belltown Compass Rose 47.616873,-122.34831
+D PBS Station KCTS 47.62419,-122.348631
+Bubbling Up 47.623945,-122.336995
+
+/*
+// Mind DFGK, drawn KGDF+2
+// Mind body soul  DEFGHK
+D PBS Station KCTS 47.62419,-122.348631
+E(index):800 Beacon, Cloud and Toto by Jamie 47.623904,-122.33614
+F(index):800 Good Dog Codi 47.620391,-122.342206
+G(index):800 Belltown Compass Rose 47.616873,-122.34831
+H(index):800 Beebe and Runyan 47.616858,-122.33628
+K(index):800 Cowboy Stain Glass Seattle Waterfront 47.606303,-122.342252
+
+Mind KGDF+2
+Denny Park Dedication Wall 47.619152,-122.34222
+K(index):800 Cowboy Stain Glass Seattle Waterfront 47.606303,-122.342252
+Board Walk 47.613012,-122.346107
+G(index):800 Belltown Compass Rose 47.616873,-122.34831
+D PBS Station KCTS 47.62419,-122.348631
+F(index):800 Good Dog Codi 47.620391,-122.342206
+
+Body DEF+3
+Club Flowers 47.6234,-122.337054
+F(index):800 Good Dog Codi 47.620391,-122.342206
+D PBS Station KCTS 47.62419,-122.348631
+Fountain at Nessie 47.624007,-122.339767
+Bubbling Up 47.623945,-122.336995
+E(index):800 Beacon, Cloud and Toto by Jamie 47.623904,-122.33614
+
+Soul KFEH+2
+Light Guy 47.608391,-122.341071
+K(index):800 Cowboy Stain Glass Seattle Waterfront 47.606303,-122.342252
+F(index):800 Good Dog Codi 47.620391,-122.342206
+E(index):800 Beacon, Cloud and Toto by Jamie 47.623904,-122.33614
+H(index):800 Beebe and Runyan 47.616858,-122.33628
+Sitting Pig Bank 47.608449,-122.341026
+*/     
+
+Live/Breathe BCDEF, drawn BDFEC+1
+also self (backwards to mix it up)
+B Circuit Board Fence 47.613875,-122.349228
+D(index):801 Colorful Windvane 47.611302,-122.3448
+Neon Crab 47.610546,-122.343473
+F(index):801 Flying Squid 47.608867,-122.340529
+E(index):801 William J Duchek Plaque 47.611264,-122.336362
+C(index):801 Convention Place Station 47.613803,-122.332003
+
+Less DEF drawn DFE+3
+D Bell at Olympic Sculpture Park 47.615274,-122.355252
+Eye Benches 47.615161,-122.355042
+Bell Street Waterfront Streetcar 47.611362,-122.348398
+F(index):802 Public Market Parking Art Mural Cherry Tree in Bloom 47.608326,-122.343131
+Doyle Building 47.610085,-122.340061
+E (index):802 Honda of Seattle Mural 47.615211,-122.331082
+
+More FGH, drawn GFH+3
+G (index):802 Undercurrents 47.618502,-122.360188
+Flying Cards 47.621705,-122.354554
+Seattle Views On Glass 47.622662,-122.352898
+F ...ena 47.624451,-122.349818
+Holiday Inn Water Obelisk 47.620358,-122.342629
+H (index):802 Universal Adapter 47.61842,-122.339212
+
+Die FGHIJ, drawn IGFHJ+1
+I(index):802 Myrtle Edwards Park 47.616984,-122.357764
+G (index):802 Science Rock 47.619941,-122.352606
+F Pathway To Life 47.622948,-122.347368
+H (index):802 Denny Park Lutheran Church 47.619832,-122.341558
+South Lake Union Dog Park 47.61948,-122.341003
+J(index):802 Beebe and Runyan 47.616858,-122.33628
+
+Capture CFGHIK, drawn KIGFHC
+K(index):801 Rachel's Ginger Beer Art 47.609511,-122.341404
+I(index):801 Streets That Work Plaque  47.614692,-122.350566
+G(index):801 Devonshire entry crest. 47.617372,-122.345975
+F(index):801 Denny Park Lutheran Church 47.619832,-122.341558
+H(index):801 Washington Talking Book & Braille Library 47.616998,-122.337023
+C Rooster at the Row House Cafe 47.623209,-122.333437
+
+Change FGHK, drawn GFKH+2
+Courage and Vigilance   47.61301,-122.341744
+Portal on 8th Ave 47.615718,-122.336883
+Seattle Precinct Stones 47.615871,-122.336623
+Eagle USA 47.614828,-122.336622
+Story Of Stone 47.604093,-122.336616
+The Flock at Paramount 47.612989,-122.331437
+
+Clear All ABCFIJK, drawn A'CJKIBAFK'K
+Fountain at Nessie 47.624007,-122.339767
+Hiawatha and the Bears 47.619208,-122.331024
+Basalt Rockery 47.611101,-122.330849
+(2 keys)Copperworks Distillery 47.605979,-122.339789
+Circle Consentric Mosaic 47.611104,-122.348652
+Fisher Plaza Fountain 47.619375,-122.348717
+UW Medicine Research 47.624227,-122.339898
+Jazz Alley Reserved Parking 47.614911,-122.339822
+Orca Mural 47.606792,-122.339835
+
+Clear AFK+3
+Servant Christ 47.618122,-122.334485
+720 Olive  47.614002,-122.334486
+Albert Sperry Kerry Memorial Plaque 47.607631,-122.334454
+Exchange Building Architecture 47.604268,-122.334491
+Hunter Eagle 47.603919,-122.334466
+Lovera Cigar, Today's Smoke Only 5 c 47.601638,-122.334486
+
+Complex DEFG, drawn EDFG+2
+Royal Palace Bar and Grill Indian Cuisine 47.62068,-122.334181
+Moses 47.620799,-122.348859
+Flying 'Hedrons 47.619558,-122.346748
+Denny Fountain 47.616445,-122.341543
+Seattle Glassblowing Studio 47.615709,-122.342795
+Art Institute of Seattle 47.612261,-122.348852
+
+Simple GH plus extra fake ABCD, or just 6 points, ABCDEF all fake
+Salmon Net Pens 47.622849,-122.366942
+US Post Office - Queen Anne Station 47.622851,-122.355554
+Fountain of Creation 47.62285,-122.353608
+Seattle Center Tree 47.622843,-122.352021
+Re:Public 47.622849,-122.338637
+Not Fame 47.622869,-122.329478
+
+Consequence  BDGHJ+1
+D Line - Queen Anne Ave N & W Mercer St  47.62425,-122.356845
+Key Arena 47.622142,-122.353166
+The Armory, Seattle Center 47.620853,-122.350918
+Belltown P-Patch Cottages 47.614165,-122.350923
+Cinerama Mural 47.614124,-122.341601
+Westlake Center Entrance 47.611629,-122.337238
+
+Courage DGHI, drawn IDGH+2
+Carved Fishermen Scene 47.606123,-122.341727
+Times Square Building Facade 47.612495,-122.338036
+Beach House 47.613637,-122.337366
+The Triple Door 47.608633,-122.337367
+Water Troughs 47.608569,-122.333349
+Marc A Matthews Memorial 47.608492,-122.329297
+
+Fear
+CDEH, Drawn DEHC+2
+She Doesn't Want Him 47.617768,-122.355831
+Davenport Crest. 47.617714,-122.346854
+Elephant Car Wash 47.617682,-122.343447
+Neon Crab 47.610546,-122.343473
+Pike Place Market Community History 47.610233,-122.343456
+Boren Ave Upper Plaza  47.621335,-122.336992
+
+Danger ADFK+2
+Fountain of Youth 47.624506,-122.331203
+The Center of the City 47.6213,-122.333099
+Paddy Coyne's Puppy Metal Structure 47.620891,-122.333322
+Everlast Boxing Wall Mural  47.616561,-122.335818
+Talking Wall 47.613983,-122.331224
+Technicolor Wall 47.603697,-122.331324
+
+Safety DEFGHIJ, drawn IDEJ+2
+Waterfront Pole 47.60928,-122.346387
+Electrical Box Monster 47.613272,-122.344157
+Seattle Glassblowing Studio 47.615709,-122.342795
+Marble Waters Fountain  47.615426,-122.334873
+Paramount Hotel Fountain 47.613204,-122.333573
+Jim Ellis Freeway Park 47.609034,-122.331142
+
+Data AEFGK+1
+City Light City Bright 47.618438,-122.338329
+Federal Court Building - Pillar 47.614692,-122.336165
+Senso Unico Arch Mural  47.613586,-122.335524
+Macy's Facade Ironwork 47.611826,-122.338376
+My Lollipop Rocks 47.610247,-122.341204
+Sunning Cormorant 47.605536,-122.338392
+
+Message drawn IDFHC+1
+Neukom Vivarium 47.615833,-122.354166
+Seattle Center Totem 47.62082,-122.351286
+Bigfood Bbq 47.621807,-122.350687
+Flying 'Hedrons 47.619558,-122.346748
+Elephant Car Wash 47.617682,-122.343447
+Fountain at Nessie 47.624007,-122.339767
+
+Destination CEFHJK drawn CJK+3
+Wall Art  47.623047,-122.332455
+Children's House Spring Mural 47.62023,-122.332409
+She Chased a Waterfall 47.618327,-122.332403
+Da Spot Mural 47.618114,-122.332403
+Norway Maple  47.613717,-122.332348
+Metsker Maps 47.609242,-122.340559
+
+DEFGHK Destiny drawn DFEHGK
+PBS Station KCTS 47.62419,-122.348631
+Good Dog Codi 47.620391,-122.342206
+Beacon, Cloud and Toto by Jamie 47.623904,-122.33614
+Beebe and Runyan 47.616858,-122.33628
+Belltown Compass Rose 47.616873,-122.34831
+Cowboy Stain Glass Seattle Waterfront 47.606303,-122.342252
+
+Unbounded FEDGHCABIKJ
+Beach House 47.613637,-122.337366
+Mt Rainier Mural 47.615424,-122.333846
+TanakaSan Railing Mural 47.615459,-122.340479
+Zanadu 47.612017,-122.340502
+Video Game Mural 47.611861,-122.333765
+Plea for a Home Mural 47.617428,-122.330614
+Terry Avenue Tram Station  47.621366,-122.337256
+City University of Seattle 47.617811,-122.344435
+Pike Place Totem Pole 47.609957,-122.343836
+Wall Critters 47.606018,-122.337255
+Exeter House Plaque 47.609888,-122.330576
+
+Difficult CEFGH drawn GFHEC+1
+Stone Helm 47.612013,-122.349959
+Marble Monoliths 47.61606,-122.343219
+Frederick & Nelson Plaque 47.612303,-122.336688
+Footsteps 47.611954,-122.336094
+Big Foot Yeti 47.62012,-122.33609
+CApitol 0081 47.624096,-122.329053
+
+Discover CIJK drawn IKJC+2
+Amli Pillar 47.623197,-122.331104
+Honda of Seattle Mural 47.615211,-122.331082
+Doyle Building 47.610085,-122.340061
+Public Market Parking Art Mural Cherry Tree in Bloom 47.608326,-122.343131
+Eye Benches 47.615161,-122.355042
+Bell at Olympic Sculpture Park 47.615274,-122.355252
+
+//  Harmony ADEFGHK drawn ADFHKGE
+The Cubic Column of North and South 47.624641,-122.335755
+Bekin Presents Bus Stop Mural 47.616909,-122.340374
+Horse Sculpture 47.6141,-122.335697
+Basalt Rockery 47.611101,-122.330849
+Owl 'n Thistle Irish Pub 47.603276,-122.335682
+Josephinium 47.611157,-122.340633
+Re-Bar 47.616599,-122.331031
+
+Outside ABI+3
+Welcoming Spirits 47.60937,-122.344769
+Colorful Windvane 47.611302,-122.3448
+Rabbit Hole 47.613655,-122.344792
+Gyro Jack 47.6145,-122.344816
+EMP Museum Administration Offices 47.619505,-122.344844
+The Cubic Column of North and South 47.624641,-122.335755
+
+Equal DEFGH, drawn GDEH+2
+Park Benches 47.611881,-122.349723
+Glowing Pods 47.620325,-122.349769
+Monorail Man (aka Teainus Prime ) 47.621344,-122.349821
+Boren Ave Upper Plaza 47.621335,-122.336992
+The Center of the City 47.6213,-122.333099
+Washington State Convention & Trade Center 47.61157,-122.333005
+
+Past BDGI+2
+Terry Avenue Tram Station  47.621366,-122.337256
+Plea for a Home Mural 47.617428,-122.330614
+Exeter House Plaque 47.609888,-122.330576
+Albert Sperry Kerry Memorial Plaque 47.607631,-122.334454
+Abstract Sculpture 47.607052,-122.335505
+Wall Critters 47.606018,-122.337255
+
+Present DEFGH drawn DGHE+2
+Monorail Man (aka Teainus Prime ) 47.621344,-122.349821
+Park Benches 47.611881,-122.349723
+Elliott Pointe 47.611828,-122.347222
+Westlake Food Court Mural 47.611645,-122.336905
+Washington State Convention & Trade Center 47.61157,-122.333005
+The Center of the City 47.6213,-122.333099
+
+Future CEHJ+2
+Space Needle Spherical Tree 47.620287,-122.34919
+May Peace Prevail on Earth 47.620051,-122.349733
+Bronze Caterpillar 47.618924,-122.351582
+The Labor Temple 47.616556,-122.351589
+Stone Bench at 1st Ave 47.616197,-122.351573
+Lundeberg Derby 47.614845,-122.349211
+
+Escape ACDEG drawn GDECA+1
+The Frankfurter 47.604577,-122.339382
+Pike Place Astronaut 47.607498,-122.339417
+Armed Services Memorial Downtown Seattle 47.607455,-122.336953
+Tiled Entrance 47.607408,-122.333984
+Jim Ellis Freeway Park 47.609034,-122.331142
+Seattle Walk of Fame 47.612125,-122.336766
+
+Evolution/Success ADFG drawn AFDG+2
+Spider Manhole 47.624797,-122.335393
+City Centre 47.610614,-122.335194
+William J Duchek Plaque 47.611264,-122.336362
+Cinerama Mural 47.614124,-122.341601
+The Pike Pub 47.608063,-122.341651
+Ton of Gold 47.606915,-122.34165
+
+Failure AEFH drawn AFEH+2
+Connectivity 47.620548,-122.336028
+Poetry Chair 47.60636,-122.336074
+3rd Ave. Wall Reliefs 47.60695,-122.33507
+Heavy Metal Sun Sculpture 47.607317,-122.334437
+Confluence 47.609936,-122.329813
+Reaching Clouds 47.602884,-122.329842
+
+Follow ACEJ drawn AECJ+2
+Signing Home 47.62444,-122.33823
+Servant Christ 47.618122,-122.334485
+Blue Water Lights 47.620287,-122.330751
+Orion Center 47.618368,-122.330664
+Plea for a Home Mural 47.617428,-122.330614
+Seattle George Monument at Freeway Park 47.611146,-122.330411
+
+Strong BDEGH drawn DEHG+2 
+Seattle Skyline Mural  47.619932,-122.344209
+Seattle Unity Church 47.619937,-122.34092
+REI Climbing Rock Tower 47.619894,-122.32936
+Spruce St Bus Stop Mural 47.617692,-122.32935
+Freeway Park 47.61039,-122.329339
+Tree of Life 47.610474,-122.344061
+
+Weak BDEGH drawn BDEH+2
+Dingwall Courtyard 47.624431,-122.352209
+Seattle Skyline Mural  47.619932,-122.344209
+Seattle Unity Church 47.619937,-122.34092
+REI Climbing Rock Tower 47.619894,-122.32936
+Spruce St Bus Stop Mural 47.617692,-122.32935
+Freeway Park 47.61039,-122.329339
+
+Grow DGI drawn IDG+3
+Clark Kent 47.602776,-122.338526
+Seattle Landmark - The National Building 47.604517,-122.337529
+Watch Shop Sidewalk Clock 47.609433,-122.334649
+Caffè Migliore 47.607807,-122.334623
+Howard H. Wright Dedication Plaque 47.606523,-122.334669
+Wells Fargo Pillars  47.604992,-122.334646
+
+Harm ADEFHJ drawn JHFDAE
+Copperworks Distillery 47.605979,-122.339789
+Bell Street Pier 47.609164,-122.345093
+Father and Son 47.615023,-122.355246
+The Dance 47.62383,-122.350246
+Belltown Sidewalk Compass 47.614925,-122.345005
+Stone Helm 47.612013,-122.349959
+
+Have FGHK drawn KGFH+2
+Story Of Stone 47.604093,-122.336616
+The Hard Rock Guitar 47.609145,-122.339513
+Doyle Building 47.610085,-122.340061
+Courage and Vigilance   47.61301,-122.341744
+Seattle Precinct Stones 47.615871,-122.336623
+The Flock at Paramount 47.612989,-122.331437
+
+help drawn bdfgh+1
+Founder's Court Central Medallion 47.623519,-122.351878
+EMP Museum Administration Offices 47.619505,-122.344844
+FareStart 47.615247,-122.337607
+Colorful Windvane 47.611302,-122.3448
+A Poem to be Worn 47.611272,-122.342764
+Seattle George Monument at Freeway Park 47.611146,-122.330411
+
+HIDE CDEGH drawn DECHG+1
+Glowing Pods 47.620325,-122.349769
+Big Foot Yeti 47.62012,-122.33609
+CApitol 0081 47.624096,-122.329053
+She Chased a Waterfall 47.618327,-122.332403
+Footsteps 47.611954,-122.336094
+Stone Helm 47.612013,-122.349959
+
+Link each portal to the previous to draw a field art glyph on the intel map.  The field art for this glyph requires extra links so pay close attention to the instructions at each portal.
+
+All
+Legacy
+Idea
+Chaos
+Contemplate
+Perspective
+Portal 
+Enlightenment            
+Shaper
+Resistance
+Civilization
+Nature
+Conflict
+Intelligence
+Again
+Attack
+Defend
+Truth
+Lie
+Create
+Destroy
+
+1. [Attack] Enlightmentment [Lie] [Defend] Resistance [Truth]
+2. Contemplate All Conflict [Together] [Avoid] Shaper
+3. [Pursue] [Complex] Idea [Discover] [Simple] Intelligence
+4. [Escape] Chaos Legacy 
+Perspective Civilization 
+[Destroy] Portal [Create] [Pure] Nature  Again 
+
+probably should get attack, defend, lie, truth, create, destroy, pure, impure
+
+15 so far.
+Interesting 6 glyph lines
+Need 15 lines.
+Need to use all the missions I make. (90 of them)
+Want pure truth pursue difficult path - meh
+Destroy enlightentment lie discover resistance truth
+All:
+All Civilization Chaos (already have all 3)
+Help us All
+All chaos inside body
+Abandon all technology save us
+Create new future see all
+Escape before death end all
+Help resistance capture all portal
+Question less forget all lie
+
+Legacy:
+Create truth legacy
+Human knowledge legacy
+Begin human legacy now
+N'zeer legacy create future
+"HUMAN", "LEGACY", "ABANDON", "OLD", "KNOWLEDGE"
+"HUMAN", "LEGACY", "HAVE", "ABANDON", "now"], 
+
+Idea:
+"DEFEND", "MESSAGE", "ANSWER", "IDEA"]
+"SIMPLE", "MESSAGE", "COMPLEX", "IDEA"],
+["STRONG", "IDEA", "PURSUE", "TRUTH"],
+["TRUTH", "IDEA", "DISCOVER", "XM"],
+
+Actual glyph sequences (from http://gm9.github.io/ingress-glyph-tools/example-glyph-sequences.html, actually glyph-sequence-dict.js) :
+        // http://www.ingress.tv/2-glyph-hack-sequences.html
+        [2], 20161029, ["ABANDON", "FEAR"], //https://fevgames.net/new-ingress-glyphs/
+        [2], 20170106, ["ADAPT", "TECHNOLOGY"], //https://fevgames.net/happy-new-glyph-year/
+        [2], 0, ["all", "chaos"],
+        [2], 0, ["attack", "chaos"],
+        [2], 0, ["attack", "difficult"],
+        [2], 0, ["capture", "portal"],
+        [2], 20161029, ["CHANGE", "PERSPECTIVE"], //https://fevgames.net/new-ingress-glyphs/
+        [2], 0, ["civilization", "chaos"],
+        [2], 20170513, ["CLEAR","CONSEQUENCE"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1
+        [2], 0, ["create", "danger"],
+        [2], 20170513, ["destroy","live again"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [2], 0, ["discover", "lie"],
+        [2], 0, ["discover", "portal"],
+        [2], 0, ["discover", "safety"],
+        [2], 20161029, ["FUTURE", "DESTINATION"], //https://fevgames.net/new-ingress-glyphs/
+        [2], 20170513, ["help","them"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [2], 20170106, ["Interrupt", "Evolution"], //https://fevgames.net/happy-new-glyph-year/
+        [2], 0, ["lead", "enlightenment"],
+        [2], 0, ["liberate", "xm"],
+        [2], 0, ["nourish", "journey"],
+        [2], 0, ["openall", "truth"],
+        [2], 0, ["path", "perfection"],
+        [2], 20170513, ["PORTAL", "PRESENCE"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [2], 0, ["pure", "body"],
+        [2], 0, ["pure", "human"],
+        [2], 0, ["pure", "truth"],
+        [2], 0, ["pursue", "truth"],
+        [2], 0, ["pursue", "xm"],
+        [2], 0, ["question", "war"],
+        [2], 0, ["search", "past"],
+        [2], 0, ["search", "potential"],
+        [2], 0, ["separate", "war"],
+        [2], 20170106, ["YOU", "ADAPT"], //https://fevgames.net/happy-new-glyph-year/
+        //L5
+        //L6
+        [5], 20161029, ["ABANDON", "FEAR", "TOGETHER"], //https://fevgames.net/new-ingress-glyphs/
+        [5], 0, ["ACCEPT", "HUMAN", "WEAK"],
+        [5], 0, ["ADVANCE", "PURE", "TRUTH"],
+        [5], 0, ["ALL", "CIVILIZATION", "CHAOS"],
+        [5], 20161029, ["ANSWER", "N'ZEER", "QUESTION"], //https://fevgames.net/new-ingress-glyphs/
+        [5], 0, ["ATTACK", "SHAPERS", "CHAOS"],
+        [5], 0, ["AVOID", "CHAOS", "SOUL"],
+        [5], 0, ["AVOID", "DESTINY", "LIE"],
+        [5], 0, ["AVOID", "PURE", "CHAOS"],
+        [5], 20161029, ["BEGIN", "NEW", "STRUGGLE"], //https://fevgames.net/new-ingress-glyphs/
+        [5], 20170106, ["CAPTURE", "VICTORY", "TOGETHER"], //https://fevgames.net/happy-new-glyph-year/
+        [5], 20161029, ["CHANGE", "PERSPECTIVE", "TECHNOLOGY"], //https://fevgames.net/new-ingress-glyphs/
+        [5], 20170106, ["CLEAR", "YOUR", "MIND"], //https://fevgames.net/happy-new-glyph-year/
+        [5], 20170513, ["conflict","grow","war"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [5], 0, ["COURAGE", "DESTINY", "REBEL"],
+        [5], 20170513, ["create","truth","legacy"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [5], 0, ["DANGER", "CHANGE", "PAST"],
+        [5], 20170513, ["defend","human","lie"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [5], 0, ["DESTROY", "DIFFICULT", "BARRIER"],
+        [5], 0, ["DESTROY", "IMPURE", "TRUTH"],
+        [5], 0, ["DISCOVER", "RESISTANCE", "TRUTH"],
+        [5], 0, ["DISCOVER", "SHAPERS", "ENLIGHTENMENT"],
+        [5], 0, ["DISCOVER", "SHAPERS", "LIE"],
+        [5], 0, ["DISCOVER", "SHAPERS", "MESSAGE"],
+        [5], 0, ["ESCAPE", "IMPURE", "EVOLUTION"],
+        [5], 0, ["ESCAPE", "IMPURE", "FUTURE"],
+        [5], 20170513, ["fear","imperfect","technology"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [5], 0, ["FOLLOW", "PURE", "JOURNEY"],
+        [5], 20161029, ["GAIN", "MORE", "KNOWLEDGE"], //https://fevgames.net/new-ingress-glyphs/
+        [5], 20170513, ["grow","shapers","presence"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [5], 0, ["HARM", "DANGER", "AVOID"],
+        [5], 20161029, ["HELP", "US", "ALL"], //https://fevgames.net/new-ingress-glyphs/
+        [5], 0, ["HUMAN", "GAIN", "SAFETY"],
+        [5], 20161029, ["HUMAN", "KNOWLEDGE", "LEGACY"], //https://fevgames.net/new-ingress-glyphs/
+        [5], 0, ["IMPROVE", "ADVANCE", "PRESENT"],
+        [5], 0, ["IMPROVE", "HUMAN", "SHAPERS"],
+        [5], 0, ["INSIDE", "XM", "TRUTH"],
+        [5], 20170106, ["INTERRUPT", "ENLIGHTENED", "TECHNOLOGY"], //https://fevgames.net/happy-new-glyph-year/
+        [5], 0, ["JOURNEY", "INSIDE", "SOUL"],
+        [5], 0, ["LEAD", "ENLIGHTENMENT", "CIVILIZATION"],
+        [5], 0, ["LIBERATE", "HUMAN", "FUTURE"],
+        [5], 20161029, ["LIE", "EQUAL", "FUTURE"], //https://fevgames.net/new-ingress-glyphs/
+        [5], 20170513, ["N'ZEER", "technology", "perfection"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [5], 0, ["PEACE", "SIMPLE", "JOURNEY"],
+        [5], 20170513, ["peace","worth","more"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [5], 0, ["PERFECTION", "PATH", "PEACE"],
+        [5], 0, ["PURSUE", "PURE", "BODY"],
+        [5], 0, ["QUESTION", "HIDE", "TRUTH"],
+        [5], 20170513, ["question","potential","mystery"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [5], 0, ["REACT", "IMPURE", "CIVILIZATION"],
+        [5], 0, ["RETREAT", "SEARCH", "SAFETY"],
+        [5], 20170513, ["share","enlightenment","knowledge"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [5], 20170513, ["share","resistance","message"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [5], 20170106, ["TECHNOLOGY", "CAPTURE", "VICTORY"], //https://fevgames.net/happy-new-glyph-year/
+        [5], 20170106, ["TOGETHER", "END", "MYSTERY"], //https://fevgames.net/happy-new-glyph-year/
+        [5], 0, ["WAR", "DESTROY", "FUTURE"],
+        [5], 20170106, ["XM", "GROW", "CREATIVITY(1216274548597a9a)"], //https://fevgames.net/happy-new-glyph-year/
+        [5], 0, ["XM", "NOURISH", "CIVILIZATION"],
+        [5], 20170106, ["YOU", "HIDE", "CHAOS"], //https://fevgames.net/happy-new-glyph-year/
+        //L7
+        [7], 20161029, ["ABANDON", "FEAR", "DEFEND", "FUTURE"], //https://fevgames.net/new-ingress-glyphs/
+        [7], 20161029, ["ABANDON", "FEAR", "SEE", "FUTURE"], //https://fevgames.net/new-ingress-glyphs/
+        [7], 20170106, ["ADAPT", "thought", "DISCOVER", "evolution"], //https://fevgames.net/happy-new-glyph-year/
+        [7], 0, ["ALL", "CHAOS", "INSIDE", "BODY"],
+        [7], 0, ["ATTACK", "WEAK", "SHAPERS", "LIE"],
+        [7], 20170106, ["BEFORE", "MYSTERY", "AFTER", "KNOWLEDGE"], //https://fevgames.net/happy-new-glyph-year/
+        [7], 20161029, ["BEGIN", "HUMAN", "LEGACY", "NOW"], //https://fevgames.net/new-ingress-glyphs/
+        [7], 20161029, ["BEGIN", "JOURNEY", "BREATHE", "XM"], //https://fevgames.net/new-ingress-glyphs/
+        [7], 0, ["BREATHE", "AGAIN", "JOURNEY", "AGAIN"],
+        [7], 0, ["BREATHE", "NATURE", "PERFECTION", "HARMONY"],
+        [7], 0, ["CAPTURE", "FEAR", "DISCOVER", "COURAGE"],
+        [7], 0, ["CHANGE", "FUTURE", "CAPTURE", "DESTINY"],
+        [7], 0, ["CHANGE", "HUMAN", "POTENTIAL", "USE"],
+        [7], 20161029, ["CHANGE", "PERSPECTIVE", "BEGIN", "NEW"], //https://fevgames.net/new-ingress-glyphs/
+        [7], 0, ["CHAOS", "barrier", "SHAPERS", "PORTAL"],
+        [7], 0, ["CLEAR", "MIND", "OPEN", "MIND"],
+        [7], 0, ["CLEARALL", "OPENALL", "DISCOVER", "TRUTH"],
+        [7], 0, ["CONTEMPLATE", "COMPLEX", "SHAPERS", "CIVILIZATION"],
+        [7], 0, ["CONTEMPLATE", "SELF", "PATH", "TRUTH"],
+        [7], 0, ["COURAGE", "attack", "shapers", "FUTURE"],
+        [7], 0, ["CREATE", "DISTANCE", "IMPURE", "PATH"],
+        [7], 0, ["CREATE", "FUTURE", "NOT", "WAR"],
+        [7], 20161029, ["CREATE", "NEW", "PORTAL", "POTENTIAL"], //https://fevgames.net/new-ingress-glyphs/
+        [7], 20170513, ["defend","human","n'zeer","lie"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [7], 0, ["DEFEND", "MESSAGE", "ANSWER", "IDEA"],
+        [7], 0, ["DESTROY", "DESTINY", "HUMAN", "LIE"],
+        [7], 0, ["DETERIORATE", "HUMAN", "WEAK", "REBEL"],
+        [7], 20170513, ["difficult","knowledge","advance","mind"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [7], 20170106, ["ENLIGHTENED", "CAPTURE", "VICTORY", "TOGETHER"], //https://fevgames.net/happy-new-glyph-year/
+        [7], 20170106, ["ESCAPE", "BEFORE", "PURE", "DEATH"], //https://fevgames.net/happy-new-glyph-year/
+        [7], 0, ["ESCAPE", "SIMPLE", "HUMAN", "FUTURE"],
+        [7], 20170513, ["fear","imperfect","n'zeer","technology"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [7], 0, ["FOLLOW", "SHAPERS", "PORTAL", "MESSAGE"],
+        [7], 0, ["FORGET", "CONFLICT", "ACCEPT", "WAR"],
+        [7], 0, ["HARMONY", "PATH", "NOURISH", "PRESENT"],
+        [7], 20170106, ["HELP", "ENLIGHTENED", "STRONG", "VICTORY"], //https://fevgames.net/happy-new-glyph-year/
+        [7], 0, ["HELP", "GAIN", "CREATE", "PURSUE"],
+        [7], 20170106, ["HELP", "RESISTANCE", "STRONG", "VICTORY"], //https://fevgames.net/happy-new-glyph-year/
+        [7], 20161029, ["HELP", "US", "SAVE", "US"], //https://fevgames.net/new-ingress-glyphs/
+        [7], 20170106, ["HIDE", "CHAOS", "INSIDE", "BODY"], //https://fevgames.net/happy-new-glyph-year/
+        [7], 0, ["HIDE", "IMPURE", "HUMAN", "THOUGHT"],
+        [7], 0, ["HUMAN", "HAVE", "IMPURE", "CIVILIZATION"],
+        [7], 0, ["HUMAN", "PAST", "PRESENT", "FUTURE"],
+        [7], 0, ["HUMAN", "SOUL", "STRONG", "PURE"],
+        [7], 0, ["IGNORE", "HUMAN", "CHAOS", "LIE"],
+        [7], 0, ["IMPROVE", "BODY", "MIND", "SOUL"],
+        [7], 0, ["IMPROVE", "BODY", "PURSUE", "JOURNEY"],
+        [7], 0, ["INSIDE", "MIND", "JOURNEY", "PERFECTION"],
+        [7], 20170106, ["INTERRUPT", "MESSAGE", "GAIN", "ADVANCE"], //https://fevgames.net/happy-new-glyph-year/
+        [7], 0, ["JOURNEY", "not", "IMPROVE", "SOUL"],
+        [7], 20170106, ["KNOWLEDGE", "HELP", "GAIN", "VICTORY"], //https://fevgames.net/happy-new-glyph-year/
+        [7], 0, ["LEAD", "PURSUE", "REACT", "DEFEND"],
+        [7], 0, ["LESS", "SOUL", "MORE", "MIND"],
+        [7], 0, ["LESS", "TRUTH", "MORE", "CHAOS"],
+        [7], 0, ["LIBERATE", "XM", "PORTAL", "TOGETHER"],
+        [7], 20170513, ["live again","die","again","evolution"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [7], 0, ["LOSE", "DANGER", "GAIN", "SAFETY"],
+        [7], 0, ["NOURISH", "XM", "CREATE", "THOUGHT"],
+        [7], 20170513, ["N'ZEER", "legacy", "create", "future"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca (20170513? 20161029?)
+        [7], 20161029, ["N'ZEER", "SHAPERS", "STRUGGLE", "KNOWLEDGE"], //https://fevgames.net/new-ingress-glyphs/
+        [7], 20161029, ["N'ZEER", "TECHNOLOGY", "MIND", "EVOLUTION"], //https://fevgames.net/new-ingress-glyphs/
+        [7], 20170513, ["N'ZEER", "TECHNOLOGY", "perfection", "truth"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca (20170513? 20161029?)
+        [7], 0, ["PAST", "AGAIN", "PRESENT", "AGAIN"],
+        [7], 0, ["PATH", "RESTRAINT", "STRONG", "SAFETY"],
+        [7], 0, ["PORTAL", "CHANGE", "CIVILIZATION", "END"],
+        [7], 0, ["PORTAL", "DIE", "CIVILIZATION", "DIE"],
+        [7], 0, ["QUESTION", "TRUTH", "GAIN", "FUTURE"],
+        [7], 0, ["RESTRAINT", "FEAR", "AVOID", "DANGER"],
+        [7], 0, ["RESTRAINT", "PATH", "GAIN", "HARMONY"],
+        [7], 0, ["SEARCH", "DATA", "DISCOVER", "PATH"],
+        [7], 0, ["SEARCH", "TRUTH", "SAVE", "CIVILIZATION"],
+        [7], 20161029, ["SEARCH", "XM", "DISTANCE", "DESTINATION"], //https://fevgames.net/new-ingress-glyphs/
+        [7], 0, ["SEARCH", "XM", "SAVE", "PORTAL"],
+        [7], 0, ["SEE", "TRUTH", "SEE", "FUTURE"],
+        [7], 0, ["SEPARATE", "WEAK", "IGNORE", "TRUTH"],
+        [7], 0, ["SHAPERS", "CHAOS", "PURE", "HARM"],
+        [7], 0, ["SHAPERS", "MESSAGE", "END", "CIVILIZATION"],
+        [7], 0, ["SHAPERS", "MIND", "COMPLEX", "HARMONY"],
+        [7], 0, ["SHAPERS", "PAST", "PRESENT", "FUTURE"],
+        [7], 0, ["SHAPERS", "SEE", "POTENTIAL", "EVOLUTION"],
+        [7], 0, ["SIMPLE", "CIVILIZATION", "IMPURE", "WEAK"],
+        [7], 0, ["SIMPLE", "MESSAGE", "COMPLEX", "IDEA"],
+        [7], 0, ["SIMPLE", "TRUTH", "BREATHE", "NATURE"],
+        [7], 0, ["SOUL", "REBEL", "HUMAN", "DIE"],
+        [7], 0, ["STAY", "TOGETHER", "DEFEND", "TRUTH"],
+        [7], 0, ["STRONG", "IDEA", "PURSUE", "TRUTH"],
+        [7], 0, ["STRONG", "TOGETHER", "AVOID", "WAR"],
+        [7], 0, ["STRUGGLE", "DEFEND", "SHAPERS", "DANGER"],
+        [7], 0, ["STRUGGLE", "IMPROVE", "HUMAN", "SOUL"],
+        [7], 0, ["TOGETHER", "DISCOVER", "HARMONY", "EQUAL"],
+        [7], 0, ["TRUTH", "IDEA", "DISCOVER", "XM"],
+        //[7], 20170106, ["UNITY", "TOGETHER", "END", "MYSTERY"], //https://fevgames.net/happy-new-glyph-year/ (unity?)
+        [7], 20170513, ["war","not","worth","consequence"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/gwk8syewNr1 https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [7], 0, ["XM", "DIE", "CHAOS", "LIVE"],
+        [7], 20170106, ["XM", "NOURISH", "STRONG", "CREATIVITY(1216274548597a9a)"], //https://fevgames.net/happy-new-glyph-year/
+        [7], 20170513, ["xm","share","your","creativity"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        //L8
+        [8], 20161029, ["ABANDON", "ALL", "TECHNOLOGY", "SAVE", "US"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 20161029, ["ABANDON", "FEAR", "DEFEND", "FUTURE", "TOGETHER"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 20161029, ["ABANDON", "FEAR", "SEE", "FUTURE", "DESTINATION"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 20170106, ["ADAPT", "THOUGHT", "DISCOVER", "SIMPLE", "SUCCESS"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 0, ["ADVANCE", "CIVILIZATION", "PURSUE", "SHAPERS", "PATH"],
+        [8], 20170513, ["AFTER", "IMPERFECT", "HUMAN", "PRESENCE", "CONSEQUENCE"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca https://plus.google.com/101378392110622406150/posts/fmQLduJWVmi https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+        [8], 20161029, ["ANSWER", "N'ZEER", "QUESTION", "POTENTIAL", "KNOWLEDGE"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 0, ["ANSWER", "QUESTION", "DISCOVER", "DIFFICULT", "TRUTH"],
+        [8], 0, ["AVOID", "CHAOS", "AVOID", "SHAPERS", "LIE"],
+        [8], 0, ["AVOID", "CHAOS", "REPAIR", "POTENTIAL", "WAR"],
+        [8], 0, ["AVOID", "PERFECTION", "STAY", "HUMAN", "SELF"],
+        [8], 20161029, ["BEGIN", "JOURNEY", "breathe", "XM", "EVOLUTION"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 0, ["breathe", "inside", "XM", "lose", "SELF"],
+        [8], 0, ["CAPTURE", "PORTAL", "DEFEND", "PORTAL", "COURAGE"],
+        [8], 20161029, ["CHANGE", "PERSPECTIVE", "BEGIN", "NEW", "STRUGGLE"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 0, ["CHAOS", "WAR", "CONFLICT", "DISCOVER", "PEACE"],
+        [8], 0, ["civilization", "die", "new", "civilization", "BEGIN"],
+        [8], 0, ["clear", "mind", "liberate", "barrier", "BODY"],
+        [8], 20170106, ["CLEAR", "YOUR", "MIND", "CREATIVITY(1216274548597a9a)", "GROW"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 20170106, ["CLEAR", "YOUR", "MIND", "MORE", "BALANCE"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 0, ["clearall", "idea", "past", "present", "FUTURE"],
+        [8], 0, ["CONTEMPLATE", "FUTURE", "NOT", "SHAPERS", "PATH"],
+        [8], 0, ["contemplate", "restraint", "discover", "more", "COURAGE"],
+        [8], 0, ["COURAGE", "ATTACK", "SHAPERS", "PORTAL", "TOGETHER"],
+        [8], 20151120, ["CREATE", "NEW", "FUTURE", "SEE", "ALL"],
+        [8], 20161029, ["CREATE", "NEW", "PORTAL", "POTENTIAL", "FUTURE"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 0, ["create", "pure", "future", "human", "civilization"],
+        [8], 0, ["create", "pure", "future", "not", "WAR"],
+        [8], 0, ["CREATE", "SEPARATE", "PATH", "END", "JOURNEY"],
+        [8], 0, ["DEFEND", "DESTINY", "DEFEND", "HUMAN", "CIVILIZATION"],
+        [8], 0, ["DEFEND", "HUMAN", "CIVILIZATION", "XM", "MESSAGE"],
+        [8], 0, ["DEFEND", "HUMAN", "CIVILIZATION", "PORTAL", "DATA"],
+        [8], 0, ["DEFEND", "HUMAN", "CIVILIZATION", "SHAPERS", "LIE"],
+        [8], 0, ["DEFEND", "HUMAN", "CIVILIZATION", "SHAPERS", "PORTAL"],
+        [8], 0, ["DESTROY", "CIVILIZATION", "END", "CONFLICT", "WAR"],
+        [8], 0, ["destroy", "lie", "not", "gain", "SOUL"],
+        [8], 0, ["DISTANCE", "SELF", "AVOID", "HUMAN", "LIE"],
+        [8], 0, ["EASY", "PATH", "FUTURE", "FOLLOW", "SHAPERS"],
+        [8], 0, ["END", "OLD", "CIVILIZATION", "CREATE", "NEW"],
+        [8], 20170106, ["ESCAPE", "BEFORE", "DEATH", "END", "ALL"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 0, ["ESCAPE", "BODY", "JOURNEY", "OUTSIDE", "PRESENT"],
+        [8], 0, ["ESCAPE", "BODY", "MIND", "SELF", "WANT"],
+        [8], 0, ["FORGET", "WAR", "SEE", "DISTANCE", "HARMONY"],
+        [8], 0, ["FORGET", "PAST", "SEE", "PRESENT", "DANGER"],
+        [8], 0, ["gain", "truth", "open", "human", "SOUL"],
+        [8], 20151120, ["GROW", "UNBOUNDED", "CREATE", "NEW", "FUTURE"],
+        [8], 20170106, ["HAVE", "HARMONY", "TOGETHER", "END", "MYSTERY"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 0, ["HARM", "PROGRESS", "PURSUE", "MORE", "WAR"],
+        [8], 0, ["HELP", "ENLIGHTENMENT", "CAPTURE", "ALL", "PORTAL"],
+        [8], 20170106, ["help", "gain", "knowledge", "inside", "resistance"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 0, ["HELP", "HUMAN", "CIVILIZATION", "PURSUE", "DESTINY"],
+        [8], 20170106, ["HELP", "US", "PROGRESS", "STRONG", "VICTORY"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 20161029, ["HELP", "US", "SAVE", "US", "ALL"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 20170513, ["HELP", "US", "SAVE", "US", "DESTROY"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+        [8], 0, ["help", "resistance", "capture", "all", "PORTAL"],
+        [8], 0, ["HIDE", "STRUGGLE", "ADVANCE", "STRONG", "TOGETHER"],
+        [8], 20170513, ["HIDE", "THEM", "inside", "COMPLEX", "INTELLIGENCE"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+        [8], 20161029, ["HUMAN", "LEGACY", "ABANDON", "OLD", "KNOWLEDGE"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 20161029, ["HUMAN", "LEGACY", "HAVE", "ABANDON", "now"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 0, ["human", "not", "together", "civilization", "deteriorate"],
+        [8], 0, ["HUMAN", "SHAPERS", "TOGETHER", "CREATE", "DESTINY"],
+        [8], 20161029, ["IMPERFECT", "MESSAGE", "BEGIN", "HUMAN", "CHAOS"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 0, ["IMPERFECT", "TRUTH", "ACCEPT", "COMPLEX", "ANSWER"],
+        [8], 0, ["IMPERFECT", "XM", "MESSAGE", "HUMAN", "CHAOS"],
+        [8], 0, ["INSIDE", "MIND", "INSIDE", "SOUL", "HARMONY"],
+        [8], 20170106, ["INTERRUPT", "ENLIGHTENED", "TECHNOLOGY", "CAPTURE", "VICTORY"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 20170106, ["interrupt", "message", "lose", "collective", "potential"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 0, ["liberate", "portal", "liberate", "human", "MIND"],
+        [8], 0, ["liberate", "self", "liberate", "human", "CIVILIZATION"],
+        [8], 20170513, ["LIVE AGAIN", "DIE", "REPEAT", "EVOLUTION", "FUTURE"], //https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+        [8], 0, ["LOSE", "SHAPERS", "MESSAGE", "GAIN", "CHAOS"],
+        [8], 0, ["MIND", "BODY", "SOUL", "PURE", "HUMAN"],
+        [8], 20170513, ["MIND", "TECHNOLOGY", "CAPTURE", "HUMAN", "SOUL"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca (comment) https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+        [8], 0, ["more", "data", "gain", "portal", "ADVANCE"],
+        [8], 20170106, ["MYSTERY", "BEFORE", "PURE", "KNOWLEDGE", "AFTER"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 20170513, ["N'ZEER", "HIDE", "us", "EQUAL", "THEM"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+        [8], 0, ["old", "nature", "less", "strong", "present"],
+        [8], 0, ["past", "chaos", "create", "future", "HARMONY"],
+        [8], 0, ["PAST", "PATH", "CREATE", "FUTURE", "JOURNEY"],
+        [8], 0, ["PORTAL", "BARRIER", "DEFEND", "HUMAN", "SHAPERS"],
+        [8], 0, ["portal", "create", "danger", "pursue", "SAFETY"],
+        [8], 0, ["PORTAL", "IMPROVE", "HUMAN", "FUTURE", "CIVILIZATION"],
+        [8], 0, ["PORTAL", "POTENTIAL", "HELP", "HUMAN", "FUTURE"],
+        [8], 20170513, ["PRESENCE", "LIE", "EQUAL", "FUTURE", "CONSEQUENCE"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/RbZ93JYWPjH https://plus.google.com/u/1/116260179700704401059/posts/aDTm9pYj9ca https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+        [8], 0, ["PRESENT", "CHAOS", "CREATE", "FUTURE", "CIVILIZATION"],
+        [8], 20170513, ["PRESENT", "STRUGGLE", "WORTH", "STRONG", "VICTORY"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/RbZ93JYWPjH https://plus.google.com/u/1/116260179700704401059/posts/aDTm9pYj9ca https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+        [8], 0, ["PURE", "HUMAN", "FAILURE", "NOW", "CHAOS"],
+        [8], 0, ["PURSUE", "CONFLICT", "WAR", "ADVANCE", "CHAOS"],
+        [8], 0, ["PURSUE", "PATH", "OUTSIDE", "SHAPERS", "LIE"],
+        [8], 0, ["QUESTION", "LESS", "FORGET", "ALL", "LIE"],
+        [8], 20170513, ["QUESTION", "POTENTIAL", "MYSTERY", "JOURNEY", "GROW"], //https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+        [8], 0, ["REACT", "REBEL", "QUESTION", "SHAPERS", "LIE"],
+        [8], 0, ["REBEL", "THOUGHT", "EVOLUTION", "DESTINY", "NOW"],
+        [8], 0, ["REPAIR", "PRESENT", "REPAIR", "HUMAN", "SOUL"],
+        [8], 0, ["REPAIR", "SOUL", "LESS", "HUMAN", "HARM"],
+        [8], 0, ["save", "human", "civilization", "destroy", "PORTAL"],
+        [8], 0, ["SEARCH", "DESTINY", "CREATE", "PURE", "FUTURE"],
+        [8], 20161029, ["SEE", "TRUTH", "SEE", "FUTURE", "BEGIN"], //https://fevgames.net/new-ingress-glyphs/
+        [8], 0, ["separate", "mind", "body", "discover", "ENLIGHTENMENT"],
+        [8], 0, ["SEPARATE", "TRUTH", "LIE", "SHAPERS", "FUTURE"],
+        [8], 0, ["SHAPERS", "LEAD", "HUMAN", "COMPLEX", "JOURNEY"],
+        [8], 0, ["SHAPERS", "PORTAL", "DATA", "CREATE", "CHAOS"],
+        [8], 0, ["SHAPERS", "PORTAL", "MESSAGE", "DESTROY", "CIVILIZATION"],
+        [8], 0, ["shapers", "see", "complex", "path", "DESTINY"],
+        [8], 0, ["SHAPERS", "WANT", "HUMAN", "MIND", "FUTURE"],
+        [8], 0, ["SIMPLE", "OLD", "TRUTH", "JOURNEY", "INSIDE"],
+        [8], 0, ["simple", "truth", "forget", "easy", "SUCCESS"],
+        [8], 0, ["simple", "truth", "shapers", "destroy", "civilization"],
+        [8], 0, ["STAY", "STRONG", "TOGETHER", "DEFEND", "RESISTANCE"],
+        [8], 0, ["STRONG", "TOGETHER", "WAR", "TOGETHER", "CHAOS"],
+        [8], 0, ["STRONG", "TOGETHER", "WAR", "TOGETHER", "DESTINY"],
+        [8], 20151120, ["TECHNOLOGY", "INTELLIGENCE", "SEE", "ALL", "UNBOUNDED"],
+        [8], 20170513, ["TOGETHER", "progress", "RECHARGE", "present", "JOURNEY"], //https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment) https://plus.google.com/116260179700704401059/posts/aDTm9pYj9ca
+        [8], 0, ["use", "mind", "use", "courage", "CHANGE"],
+        [8], 0, ["USE", "RESTRAINT", "FOLLOW", "EASY", "PATH"],
+        [8], 20170513, ["WANT", "NEW", "DESTINATION", "IGNORE", "CONSEQUENCE"], // https://plus.google.com/108086824097369974579/posts/HWhW2461S2x (comment) https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+        [8], 0, ["WANT", "TRUTH", "PURSUE", "DIFFICULT", "PATH"],
+        [8], 0, ["weak", "human", "destiny", "destroy", "CIVILIZATION"],
+        [8], 0, ["XM", "CREATE", "COMPLEX", "HUMAN", "DESTINY"],
+        //[8], 0, ["XM", "create", "complex", "shapers", "DESTINY"],
+        [8], 0, ["XM", "PATH", "FUTURE", "DESTINY", "HARMONY"],
+        [8], 20170513, ["XM", "PORTAL", "SHARE", "YOUR", "CREATIVITY"], //https://plus.google.com/+NikitaKorolevSPbRus/posts/RbZ93JYWPjH https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo
+        [8], 20170106, ["YOU", "HIDE", "CHAOS", "INSIDE", "BODY"], //https://fevgames.net/happy-new-glyph-year/
+        [8], 20170513, ["your", "MESSAGE", "CLEAR", "USE", "CHAOS"] //https://plus.google.com/104078798708321963866/posts/eVHnzQUCsLo (comment)
+    ];
+
 -->
