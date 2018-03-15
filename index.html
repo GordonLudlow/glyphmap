@@ -303,6 +303,12 @@ function initializeMap()
                 for (let j=i+1; j<portal.length; j++) {
                     let dLat = portal[i].lat - portal[j].lat;
                     let dLng = portal[i].lng - portal[j].lng;
+                    
+                    // One degree of latitude is 111 km
+                    // One degree of longitude is 111 km * cos(latitude)
+                    dLat *= 111;
+                    dLng *= 111 * Math.cos(portal[i].lat * Math.PI / 180);
+                    
                     portalDist[i][j] = Math.sqrt(dLat*dLat + dLng*dLng);
                     portalSlope[i][j] = {slope: dLat/dLng};              
                 }
@@ -512,23 +518,23 @@ function initializeMap()
     }
 */
 /*
-Improve
+
 */
      
                               //A
             let enabled = [   false,
             // B                                   C            
-            false,                                 true,
+            false,                                 false,
                      // D                 E            
                      true,              true,
                               // F                     
                               false,
                      // G                 H                              
-                     true,              true,
+                     false,              true,
             // I                                    J                     
-            false,                                 false,
+            true,                                 true,
                               // K            
-                              false];
+                              true];
 
             for (let a=0; a < (enabled[0]?portal.length - 10:1); a++) {
                 portalIndex[0] = a;
@@ -780,6 +786,7 @@ Improve
                     });
                 }
             }
+            logString = "";
             for (let p=0;p<bestPortals.length; p++) {
                 if (!enabled[p]) continue;
                 let port = portal[bestPortals[p]];
@@ -789,8 +796,9 @@ Improve
                     clickable: false,
                     icon: {url: 'circle.png', scaledSize: new google.maps.Size(20, 20), anchor: new google.maps.Point(10,10)}
                 });
-                console.log(port.title + " " + port.latlng);
+                logString += port.title + " " + port.latlng + "\n";
             }
+            console.log(logString);
                         
         })
         .fail(function(jqXHR, textStatus, errorThrown) { 
@@ -1477,6 +1485,89 @@ CApitol 0081 47.624096,-122.329053
 She Chased a Waterfall 47.618327,-122.332403
 Footsteps 47.611954,-122.336094
 Stone Helm 47.612013,-122.349959
+
+Improve drawn CEFH+2
+El Corazon Mural 47.618694,-122.329266
+Federal Court Building - Pillar 47.614692,-122.336165
+A Is for Always 47.611067,-122.342462
+The Virginia Inn 47.610944,-122.34269
+Pvc Tree Gutter 47.610805,-122.342942
+Panda 47.606899,-122.336172
+
+Journey BCDEFIK drawn KIBDFEC
+Steamy Orca 47.606662,-122.340372
+Japanese Cherry Trees 47.611712,-122.349465
+Ball Pipe Organ 47.622279,-122.349378
+EMP Museum Administration Offices 47.619505,-122.344844
+Bekin Presents Bus Stop Mural 47.616909,-122.340374
+13 Coins 47.619484,-122.335949
+Plant Bay 47.62209,-122.331608
+
+Knowledge DEFK drawn DFEK+2
+Trail2Treasure Seattle Hotel and Yesler Way 47.601836,-122.335193
+The Doctor's Legacy 47.618744,-122.341089
+Zebra Print Scrolling Fountain 47.615473,-122.33515
+El Corazon Mural 47.618694,-122.329266
+One Union Fountain 47.609647,-122.332448
+Hunter Eagle 47.603919,-122.334466
+
+Lead
+Craftsman's Hieroglyphics 47.621925,-122.335236
+Elephant Car Wash 47.617682,-122.343447
+Neon Crab 47.610546,-122.343473
+Young Eagle Statue 47.607987,-122.343501
+Seattle Style 47.610432,-122.339278
+Coffee Art Electrical Box 47.603301,-122.335138
+
+Liberate ACDEFI drawn ACEFDI
+Nutcracker Mural 47.624063,-122.351509
+Pop Kitchen Bar 47.621918,-122.347836
+Chihuly Garden and Glass 47.620866,-122.349682
+Turtle Sculpture at the Pacific Science Center 47.619846,-122.351367
+Skate Park Mural Thomas Street 47.620983,-122.353297
+OSP Schubert Sonata Fish Sculpture 47.615704,-122.356396
+
+Live Again CDEFGI drawn CEFGDI+1
+Plant Bay 47.62209,-122.331608
+13 Coins 47.619484,-122.335949
+Bekin Presents Bus Stop Mural 47.616909,-122.340374
+Wexley Mural 47.615877,-122.342324
+Gyro Jack 47.6145,-122.344816
+EMP Museum Administration Offices 47.619505,-122.344844
+Japanese Cherry Trees 47.611712,-122.349465
+
+Mystery ABDEG drawn BDAEDG
+The Spice of Life 47.60894,-122.342144
+Harbor Steps Park 47.606883,-122.338473
+The Watching Man 47.6128,-122.334978
+The Cause of Justice 47.606877,-122.331544
+Harbor Steps Stair Fountain 47.606734,-122.338498
+Clark Kent 47.602776,-122.338526
+
+New EHJ+3
+The Doctor's Legacy 47.618744,-122.341089
+Pike Place Bathroom Mosaic  47.609344,-122.341087
+Showbox Theater Marquee 47.608464,-122.339542
+Bike Art Near City Target 47.608058,-122.338781
+Spiral Flower 47.60535,-122.334095
+Central Building 47.604604,-122.332842
+
+Old BDG+3
+Metropolitan Clock at Ross 47.609743,-122.337589
+Watchers 47.60833,-122.335133
+Seattle Library Glass Building 47.606921,-122.332656
+Downtown Seattle YMCA 47.605618,-122.332648
+Interurban Building 47.60162,-122.33268
+Have Lunch Over Seas 47.601282,-122.332659
+
+Not/Inside DEH+3
+Grass Blades 47.622142,-122.348606
+Split Time Clock 47.622153,-122.34217
+Pig Statue 47.62213,-122.338647
+Morningside Academy Mural 47.619871,-122.338624
+South Lake Union Discovery Center 47.619101,-122.338644
+Public Space Plaque 47.618257,-122.338665
+
 
 Link each portal to the previous to draw a field art glyph on the intel map.  The field art for this glyph requires extra links so pay close attention to the instructions at each portal.
 
